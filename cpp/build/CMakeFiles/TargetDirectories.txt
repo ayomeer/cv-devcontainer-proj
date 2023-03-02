@@ -1,0 +1,3 @@
+/app/cpp/build/CMakeFiles/rebuild_cache.dir
+/app/cpp/build/CMakeFiles/edit_cache.dir
+/app/cpp/build/CMakeFiles/DisplayImage.dir

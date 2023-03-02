@@ -1,0 +1,5 @@
+ipython
+tk
+matplotlib
+numpy
+pandas
