@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y \
 	wget vim 
 
 RUN mkdir -p /opencv && cd /opencv && \
-    wget -O opencv.zip https://github.com/opencv/opencv/archive/4.x.zip && \
+    wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.19.zip && \
     unzip opencv.zip && \
     mkdir -p build && cd build && \ 
     cmake \
     -D CMAKE_BUILD_TYPE=Release \
     -D CMAKE_INSTALL_PREFIX=/usr/local \
-    ../opencv-4.x && \
+    ../opencv-3.4.19 && \
     make -j"$(nproc)" && ldconfig
