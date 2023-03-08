@@ -15,7 +15,7 @@ RUN mkdir -p /opencv && cd /opencv && \
     -D CMAKE_INSTALL_PREFIX=/usr/local \
     ../opencv-4.x && \
     make -j"$(nproc)" && \
-		make install %%	ldconfig
+    make install && ldconfig
 
 COPY ./python/requirements.txt /app/python
 RUN pip install -r ./python/requirements.txt 
