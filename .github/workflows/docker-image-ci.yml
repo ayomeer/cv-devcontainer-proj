@@ -32,9 +32,9 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: false # don't push but..
+          push: true 
           load: true  # make available locally for testing
-          tags: ${{ env.TEST_TAG }}
+          tags: ${{ env.TEST_TAG }} # tags to push
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
