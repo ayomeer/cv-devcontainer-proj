@@ -1,7 +1,7 @@
 # based on: https://docs.docker.com/build/ci/github-actions/test-before-push/
 # and: https://github.com/BretFisher/docker-ci-automation/blob/main/.github/workflows/02-add-buildkit-cache.yaml
 
-name: DevContainer-Image-CI
+name: DevContainer CI
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Build and export to Docker
+      - name: Build Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .

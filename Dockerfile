@@ -1,7 +1,4 @@
 FROM python:3.10
-
-COPY . /app
-
 WORKDIR /app
 
 RUN pip install -r ./python/requirements.txt 
@@ -19,4 +16,7 @@ RUN mkdir -p /opencv && cd /opencv && \
     -D CMAKE_BUILD_TYPE=Release \
     -D CMAKE_INSTALL_PREFIX=/usr/local \
     ../opencv-4.x && \
-    make -j"$(nproc)" && ldconfig
+    make -j"$(nproc)" && \
+		make install %%	ldconfig
+
+COPY . /app
