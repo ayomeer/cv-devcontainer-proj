@@ -1,4 +1,5 @@
 # based on: https://docs.docker.com/build/ci/github-actions/test-before-push/
+# and: https://github.com/BretFisher/docker-ci-automation/blob/main/.github/workflows/02-add-buildkit-cache.yaml
 
 name: Docker Image CI
 
@@ -31,8 +32,11 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          load: true # make available locally for testing
+          push: false # don't push but..
+          load: true  # make available locally for testing
           tags: ${{ env.TEST_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       
 #      - name: Test
 #        run: |
