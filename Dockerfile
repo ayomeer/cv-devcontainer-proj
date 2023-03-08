@@ -1,8 +1,6 @@
 FROM python:3.10
 WORKDIR /app
 
-RUN pip install -r ./python/requirements.txt 
-
 RUN apt-get update && apt-get install -y \
     build-essential cmake --no-install-recommends \
     libgtk2.0-dev pkg-config \
@@ -18,5 +16,8 @@ RUN mkdir -p /opencv && cd /opencv && \
     ../opencv-4.x && \
     make -j"$(nproc)" && \
 		make install %%	ldconfig
+
+COPY ./python/requirements.txt /app/python
+RUN pip install -r ./python/requirements.txt 
 
 COPY . /app
