@@ -17,7 +17,8 @@ RUN mkdir -p /opencv && cd /opencv && \
     make -j"$(nproc)" && \
 		make install %%	ldconfig
 
-COPY ./python/requirements.txt /app/python
-RUN pip install -r ./python/requirements.txt 
+COPY ./requirements.txt /app
+RUN pip install -r ./requirements.txt 
 
-COPY . /app
+COPY ./cpp /app
+COPY ./python /app
