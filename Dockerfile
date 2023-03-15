@@ -4,7 +4,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential cmake --no-install-recommends \
     libgtk2.0-dev pkg-config \
-	wget vim 
+		wget vim \
+		libncurses5-dev
 
 RUN mkdir -p /opencv && cd /opencv && \
     wget -O opencv.zip https://github.com/opencv/opencv/archive/4.x.zip && \

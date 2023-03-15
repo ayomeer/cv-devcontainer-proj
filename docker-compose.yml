@@ -13,5 +13,6 @@ services:
     environment:
       - DISPLAY=host.docker.internal:0.0 # set display environment to host IP
       - MPLBACKEND=TkAgg
+      - PYTHONBREAKPOINT=ipdb.set_trace  # use ipdb for breakpoint()-function
     stdin_open: true
     tty: true

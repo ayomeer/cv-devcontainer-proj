@@ -1,4 +1,6 @@
 ipython
+ipdb
+readline
 tk
 matplotlib
 numpy
