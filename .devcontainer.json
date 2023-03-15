@@ -9,9 +9,10 @@
                 "jupyter.sendSelectionToInteractiveWindow": true
             },
             "extensions": [
-                "ms-python.python",
-				"ms-vscode.cpptools"
-            ]
+				"ms-python.python",
+				"ms-vscode.cpptools",
+				"076923.python-image-preview"
+			]
         }
     },
     "shutdownAction": "stopCompose"
