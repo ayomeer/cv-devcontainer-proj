@@ -20,5 +20,3 @@ RUN mkdir -p /opencv && cd /opencv && \
 COPY ./requirements.txt /app
 RUN pip install -r ./requirements.txt 
 
-COPY ./cpp /app
-COPY ./python /app

@@ -1,6 +1,6 @@
 services:
   app: 
-    image: ayomeer/cv-devcontainer-image:imshow
+    image: ayomeer/cv-devcontainer-image:noprjfiles
     container_name: devcontainer
     command: sh
     network_mode: host  # works despite documentation saying it only works for linux host
@@ -8,6 +8,8 @@ services:
                         #     and not Docker subnet
     volumes:
       - ./_img:/app/_img
+      - ./python:/app/python
+      - ./cpp:/app/cpp
     environment:
       - DISPLAY=host.docker.internal:0.0 # set display environment to host IP
       - MPLBACKEND=TkAgg
