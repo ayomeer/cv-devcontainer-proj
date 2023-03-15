@@ -1,6 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 
 def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
@@ -78,7 +79,7 @@ if __name__ == "__main__":
     plt.imshow(img_d)
     plt.show(block=False)
 
-    # Shape undistorted image
+    # Define shape undistorted image
     M = N = 800
  
     # Pre-defined reference points in distorted and undistorted image
@@ -88,13 +89,22 @@ if __name__ == "__main__":
     # Show reference point in original, distorted image
     plotPointsOnImage(img_d, x_d)
 
+    # --- critical section 1 (0.00011240000094403513s) -------------
+    t_Hsolve_start = time.perf_counter()
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
+    t_Hsolve_end = time.perf_counter()
+    print(t_Hsolve_end-t_Hsolve_start)
+    # -------------------------------------------------------------
 
-    ds = img_d.shape[2]
+    # --- critical section 2 (6.209200379998947s) -----------------
+    t_undistort_start = time.perf_counter()
     img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    t_undistort_end = time.perf_counter()
+    print(t_undistort_end-t_undistort_start)
+    # -------------------------------------------------------------
 
     # Show result
     plt.figure(figsize=FIGURE_SIZE)
     plt.imshow(img_u)
-    plt.title("Undestorted Image")
+    plt.title("Undistorted Image")
     plt.show()
