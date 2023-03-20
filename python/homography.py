@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import lib.cppmodule as cpp
+import cv2
 
 # --- Constants ----------------------------------------------------------- #
 FIGURE_SIZE = (12, 9)
@@ -102,7 +103,11 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    im = np.array(cpp.readImage(), copy=False)
+
+    # test pybind11 module
+    imPy = cv2.imread("/app/_img/dog.jpg")
+
+    im = np.array(cpp.pointwiseUndistort(imPy), copy=False)
     plt.imshow(im)
     plt.show()
     
