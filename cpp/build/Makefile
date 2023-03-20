@@ -130,44 +130,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named DisplayImage
+# Target rules for targets named cppmodule
 
 # Build rule for target.
-DisplayImage: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 DisplayImage
-.PHONY : DisplayImage
+cppmodule: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cppmodule
+.PHONY : cppmodule
 
 # fast build rule for target.
-DisplayImage/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/DisplayImage.dir/build.make CMakeFiles/DisplayImage.dir/build
-.PHONY : DisplayImage/fast
+cppmodule/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/build
+.PHONY : cppmodule/fast
 
-DisplayImage.o: DisplayImage.cpp.o
+cppmodule.o: cppmodule.cpp.o
 
-.PHONY : DisplayImage.o
+.PHONY : cppmodule.o
 
 # target to build an object file
-DisplayImage.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/DisplayImage.dir/build.make CMakeFiles/DisplayImage.dir/DisplayImage.cpp.o
-.PHONY : DisplayImage.cpp.o
+cppmodule.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.o
+.PHONY : cppmodule.cpp.o
 
-DisplayImage.i: DisplayImage.cpp.i
+cppmodule.i: cppmodule.cpp.i
 
-.PHONY : DisplayImage.i
+.PHONY : cppmodule.i
 
 # target to preprocess a source file
-DisplayImage.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/DisplayImage.dir/build.make CMakeFiles/DisplayImage.dir/DisplayImage.cpp.i
-.PHONY : DisplayImage.cpp.i
+cppmodule.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.i
+.PHONY : cppmodule.cpp.i
 
-DisplayImage.s: DisplayImage.cpp.s
+cppmodule.s: cppmodule.cpp.s
 
-.PHONY : DisplayImage.s
+.PHONY : cppmodule.s
 
 # target to generate assembly for a file
-DisplayImage.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/DisplayImage.dir/build.make CMakeFiles/DisplayImage.dir/DisplayImage.cpp.s
-.PHONY : DisplayImage.cpp.s
+cppmodule.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.s
+.PHONY : cppmodule.cpp.s
 
 # Help Target
 help:
@@ -177,10 +177,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... DisplayImage"
-	@echo "... DisplayImage.o"
-	@echo "... DisplayImage.i"
-	@echo "... DisplayImage.s"
+	@echo "... cppmodule"
+	@echo "... cppmodule.o"
+	@echo "... cppmodule.i"
+	@echo "... cppmodule.s"
 .PHONY : help
 
 

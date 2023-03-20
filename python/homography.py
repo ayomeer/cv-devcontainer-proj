@@ -1,8 +1,12 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+import lib.cppmodule as cpp
 
+# --- Constants ----------------------------------------------------------- #
+FIGURE_SIZE = (12, 9)
+
+# --- Functions ----------------------------------------------------------- #
 
 def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
     plt.figure()
@@ -67,10 +71,7 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
     return img_u
 
 
-
-if __name__ == "__main__":
-    FIGURE_SIZE = (12, 9)
-    
+def main():
     # Reading image
     imgName = './_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
     img_d = plt.imread(imgName)
@@ -89,22 +90,20 @@ if __name__ == "__main__":
     # Show reference point in original, distorted image
     plotPointsOnImage(img_d, x_d)
 
-    # --- critical section 1 (0.00011240000094403513s) -------------
-    t_Hsolve_start = time.perf_counter()
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
-    t_Hsolve_end = time.perf_counter()
-    print(t_Hsolve_end-t_Hsolve_start)
-    # -------------------------------------------------------------
 
-    # --- critical section 2 (6.209200379998947s) -----------------
-    t_undistort_start = time.perf_counter()
     img_u = pointwiseUndistort(H_d_u, img_d, M, N)
-    t_undistort_end = time.perf_counter()
-    print(t_undistort_end-t_undistort_start)
-    # -------------------------------------------------------------
 
     # Show result
     plt.figure(figsize=FIGURE_SIZE)
     plt.imshow(img_u)
     plt.title("Undistorted Image")
     plt.show()
+
+if __name__ == "__main__":
+    # main()
+    im = np.array(cpp.readImage(), copy=False)
+    plt.imshow(im)
+    plt.show()
+    
+    
