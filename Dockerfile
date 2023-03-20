@@ -7,9 +7,8 @@ RUN apt-get update && apt-get install -y \
 		wget vim \
 		libncurses5-dev
 
-# python requirements actually need to be there when installing opencv
-COPY ./requirements.txt /app
-RUN pip install -r ./requirements.txt 
+# numpy needs to be installed before for opencv bindings to be generated correctly
+RUN pip install numpy
 
 RUN mkdir -p /opencv && cd /opencv && \
     wget -O opencv.zip https://github.com/opencv/opencv/archive/4.x.zip && \
@@ -22,5 +21,6 @@ RUN mkdir -p /opencv && cd /opencv && \
     make -j"$(nproc)" && \
     make install && ldconfig
 
-
+COPY ./requirements.txt /app
+RUN pip install -r ./requirements.txt 
 
