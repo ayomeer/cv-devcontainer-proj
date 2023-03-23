@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
 import cv2
+import time
 
 # --- Constants ----------------------------------------------------------- #
 FIGURE_SIZE = (12, 9)
@@ -74,7 +75,7 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
 
 def main():
     # Reading image
-    imgName = './_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
+    imgName = '/app/_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
     img_d = plt.imread(imgName)
 
     plt.figure(figsize=FIGURE_SIZE)
@@ -93,45 +94,26 @@ def main():
 
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
 
-    img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    img_u_shape = (M, N, 3)
 
+    t1 = time.perf_counter()
+    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape))
+    t2 = time.perf_counter()
+    tUndistort = t2-t1
+    print("tUndistort ", tUndistort)
+    
     # Show result
     plt.figure(figsize=FIGURE_SIZE)
     plt.imshow(img_u)
     plt.title("Undistorted Image")
     plt.show()
 
+    dummy = 1
+
 if __name__ == "__main__":
-    # main()
+    main()
 
-    # test pybind11 module
-    imPy = cv2.imread("/app/_img/chessboard_perspective.jpg")
-    
-    # -- Method 1: sending numpy array 
-    """
-    cpp.pointwiseUndistort(imPy)
-
-    plt.imshow(imPy)
-    """
-    
-    # -- Method2: creating C++-Native cv::mat object, sending that
-    """
-    imCpp = cpp.Mat(imPy)
-    cpp.pointwiseUndistort(imCpp)
-
-    plt.imshow(imPy)
-    """
-
-    # -- Method 3: creating C++-Native cv::mat object, sending that and 
-    #              creating new numpy array for result
-    """
-    imCpp = cpp.Mat(imPy)
-    im = np.array(cpp.pointwiseUndistort(imCpp), copy=False)
-
-    plt.imshow(im)
-    """
-    
-    plt.show() 
 
 
 
