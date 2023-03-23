@@ -5,22 +5,67 @@
 
 namespace py = pybind11;
 
-cv::Mat pointwiseUndistort(py::array_t<unsigned char>& imBuf){
-    auto rows = imBuf.shape(0);
-    auto cols = imBuf.shape(1);
+/*
+void pointwiseUndistort(py::array& arr){
+    auto rows = arr.shape(0);
+    auto cols = arr.shape(1);
     auto type = CV_8UC3; // 3 dim unsigned char
-    auto ptr = (unsigned char*)imBuf.data();
+    auto ptr = (unsigned char*)arr.data();
 
     cv::Mat img(rows, cols, type, ptr);
-
-    cv::flip(img, img, 0);
-    return img;
+    cv::flip(img, img, 1);
 }
+*/
+
+/*
+void pointwiseUndistort(cv::Mat& arr){
+
+    cv::flip(arr, arr, 1);
+
+}
+*/
+
+
+cv::Mat pointwiseUndistort(cv::Mat& arr){
+
+    cv::flip(arr, arr, 1);
+    return arr;
+}
+
+
 
 PYBIND11_MODULE(cppmodule, m){
     m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
     m.doc() = "Docstring for pointwiseUndistort function";
-    py::class_<cv::Mat>(m, "Mat", py::buffer_protocol())
+    
+    py::class_<cv::Mat>(m, "Mat", py::buffer_protocol())      
+        // custom contructor for obj creation from numpy buffer object
+        .def(py::init([](py::buffer b) {
+            py::buffer_info info = b.request();
+            
+            auto dims = info.ndim;
+            auto rows = info.shape[0];
+            auto cols = info.shape[1];
+            
+            // determine cv::mat type 
+            int type;
+            if(dims == 2) {// transform matrix
+                type = CV_64FC2;
+                printf("\n Creating 2dim cv::Mat \n");
+            }
+            else if (dims == 3){ // image
+                type = CV_8UC3;     
+                printf("\n Creating 3dim cv::Mat \n");
+            }
+
+            return cv::Mat(rows, cols, type, info.ptr);
+        }))
+
+        // expose some public attributes
+        .def_readwrite("dims", &cv::Mat::dims)
+        .def_readwrite("data", &cv::Mat::data)
+
+        // define buffer object to hand over to Python C-API instead of passing by value
         .def_buffer([](cv::Mat &im) -> py::buffer_info {
             return py::buffer_info(
                 im.data,                                            // pointer to data
@@ -38,7 +83,7 @@ PYBIND11_MODULE(cppmodule, m){
                     sizeof(unsigned char)
                 }
             );
-        });
+        })
+    ;
 }
-
 
