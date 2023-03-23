@@ -1,7 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import lib.cppmodule as cpp
+import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
 import cv2
 
 # --- Constants ----------------------------------------------------------- #
@@ -105,10 +105,34 @@ if __name__ == "__main__":
     # main()
 
     # test pybind11 module
-    imPy = cv2.imread("/app/_img/dog.jpg")
-
-    im = np.array(cpp.pointwiseUndistort(imPy), copy=False)
-    plt.imshow(im)
-    plt.show()
+    imPy = cv2.imread("/app/_img/chessboard_perspective.jpg")
     
+    # -- Method 1: sending numpy array 
+    """
+    cpp.pointwiseUndistort(imPy)
+
+    plt.imshow(imPy)
+    """
+    
+    # -- Method2: creating C++-Native cv::mat object, sending that
+    """
+    imCpp = cpp.Mat(imPy)
+    cpp.pointwiseUndistort(imCpp)
+
+    plt.imshow(imPy)
+    """
+
+    # -- Method 3: creating C++-Native cv::mat object, sending that and 
+    #              creating new numpy array for result
+    """
+    imCpp = cpp.Mat(imPy)
+    im = np.array(cpp.pointwiseUndistort(imCpp), copy=False)
+
+    plt.imshow(im)
+    """
+    
+    plt.show() 
+
+
+
     
