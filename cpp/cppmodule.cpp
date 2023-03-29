@@ -38,25 +38,22 @@ namespace cv {
         for (int m=0; m<M; m++){ // m = {0, 1, 2, ... , M-1}
             for (int n=0; n<N; n++){ 
                 Mat xu = (Mat_<int>(3, 1) << m, n, 1);
-                Mat xu_double;
-                xu.convertTo(xu_double, CV_64F);
+                xu.convertTo(xu, CV_64F);
 
                 // coordinate transform
-                Mat xd_double = H*xu_double;
+                Mat xd = H*xu;
                 
                 // convert back to inhom coords
-                xd_double = xd_double / xd_double.at<double>(2,0);
+                xd = xd / xd.at<double>(2,0);
 
                 // round to integer indexes
-                Mat xd_int;
-                xd_double.convertTo(xd_int, CV_32S);
+                xd.convertTo(xd, CV_32S);
 
                 // use transformed coords to get pixel value from distorted image
-                int x = xd_int.at<int>(0,0); 
-                int y = xd_int.at<int>(1,0); 
-
-                Vec3b rgb_vect = img_d.at<Vec3b>(Point(y, x)); //reverso!
-                img_u.at<Vec3b>(m, n) = rgb_vect;
+                int x = xd.at<int>(0,0); 
+                int y = xd.at<int>(1,0); 
+                
+                img_u.at<Vec3b>(m, n) = img_d.at<Vec3b>(Point(y, x)); //reverso!
             }
         }
         return img_u;
