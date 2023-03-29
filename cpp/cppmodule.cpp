@@ -35,10 +35,10 @@ namespace cv {
         // -- Algorithm
         Mat img_u(M, N, CV_8UC3); // prepare return image
 
-        for (int m=0; m<M; m++){ // m = {0, 1, 2, ... , M-1}
-            for (int n=0; n<N; n++){ 
-                Mat xu = (Mat_<int>(3, 1) << m, n, 1);
-                xu.convertTo(xu, CV_64F);
+        for (double m=0; m<M; m++){ // m = {0, 1, 2, ... , M-1}
+            for (double n=0; n<N; n++){ 
+                // build undistorted, homogeneous coordinate vector
+                Mat xu = (Mat_<double>(3, 1) << m, n, 1);
 
                 // coordinate transform
                 Mat xd = H*xu;
@@ -52,8 +52,7 @@ namespace cv {
                 // use transformed coords to get pixel value from distorted image
                 int x = xd.at<int>(0,0); 
                 int y = xd.at<int>(1,0); 
-                
-                img_u.at<Vec3b>(m, n) = img_d.at<Vec3b>(Point(y, x)); //reverso!
+                img_u.at<Vec3b>(m, n) = img_d.at<Vec3b>(Point(y, x)); // Point uses reverse order!
             }
         }
         return img_u;
