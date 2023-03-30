@@ -20,7 +20,6 @@ def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
     plt.ylabel("coordinate 0")
     plt.show(block=False)
 
-
 # solve system of equations to find H_d_u
 def homographyFrom4PointCorrespondences(x_d: np.ndarray, x_u: np.ndarray) -> np.ndarray:
 
@@ -44,16 +43,13 @@ def homographyFrom4PointCorrespondences(x_d: np.ndarray, x_u: np.ndarray) -> np.
     H_d_u = np.append(h_coefs, [1]).reshape((3,3))
     return H_d_u
 
-
 def hom2inhom(xhom):
     return xhom[0:2]/xhom[2]
-
 
 def inhom2hom(x):
     xhom = np.ones(3)
     xhom[0:2] = x
     return xhom
-
 
 def pointwiseUndistort(H_d_u, img_d, M, N):
     img_u = np.empty((M,N,3), np.uint8)
@@ -71,7 +67,6 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
             # Use transformed coords to get pixel value
             img_u[m][n] = img_d[xd[0], xd[1], :] # last dimensions: rgb channels  
     return img_u
-
 
 def main():
     # Reading image
