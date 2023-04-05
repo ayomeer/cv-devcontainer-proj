@@ -93,7 +93,7 @@ def main():
     img_u_shape = (M, N, 3)
 
     t1 = time.perf_counter()
-    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape))
+    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
     t2 = time.perf_counter()
     tUndistort = t2-t1
     print("tUndistort ", tUndistort)
