@@ -6,7 +6,7 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "jupyter.sendSelectionToInteractiveWindow": true
+
             },
             "extensions": [
 				"ms-python.python",

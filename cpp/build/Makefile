@@ -130,44 +130,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named cppmodule
+# Target rules for targets named hello
 
 # Build rule for target.
-cppmodule: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cppmodule
-.PHONY : cppmodule
+hello: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 hello
+.PHONY : hello
 
 # fast build rule for target.
-cppmodule/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/build
-.PHONY : cppmodule/fast
+hello/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hello.dir/build.make CMakeFiles/hello.dir/build
+.PHONY : hello/fast
 
-cppmodule.o: cppmodule.cpp.o
+cuda.o: cuda.cu.o
 
-.PHONY : cppmodule.o
+.PHONY : cuda.o
 
 # target to build an object file
-cppmodule.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.o
-.PHONY : cppmodule.cpp.o
+cuda.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hello.dir/build.make CMakeFiles/hello.dir/cuda.cu.o
+.PHONY : cuda.cu.o
 
-cppmodule.i: cppmodule.cpp.i
+cuda.i: cuda.cu.i
 
-.PHONY : cppmodule.i
+.PHONY : cuda.i
 
 # target to preprocess a source file
-cppmodule.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.i
-.PHONY : cppmodule.cpp.i
+cuda.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hello.dir/build.make CMakeFiles/hello.dir/cuda.cu.i
+.PHONY : cuda.cu.i
 
-cppmodule.s: cppmodule.cpp.s
+cuda.s: cuda.cu.s
 
-.PHONY : cppmodule.s
+.PHONY : cuda.s
 
 # target to generate assembly for a file
-cppmodule.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.s
-.PHONY : cppmodule.cpp.s
+cuda.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/hello.dir/build.make CMakeFiles/hello.dir/cuda.cu.s
+.PHONY : cuda.cu.s
 
 # Help Target
 help:
@@ -177,10 +177,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... cppmodule"
-	@echo "... cppmodule.o"
-	@echo "... cppmodule.i"
-	@echo "... cppmodule.s"
+	@echo "... hello"
+	@echo "... cuda.o"
+	@echo "... cuda.i"
+	@echo "... cuda.s"
 .PHONY : help
 
 
