@@ -1,26 +1,20 @@
-cmake_minimum_required(VERSION 3.11)
-project(cppmodule LANGUAGES CXX CUDA)
-enable_language(CUDA)
+cmake_minimum_required(VERSION 2.8)
+project(cppmodule)
 
 # Set C++11 as minimum required standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CSS_STANDARD_REQUIRED ON)
 
-# Add Threads package
 set(THREADS_PREFER_PTHREAD_FLAG ON) # use the -pthread compiler and linker flag
 set(CMAKE_THREAD_PREFER_PTHREAD ON) # use pthread library if multiple thread libraries available
-find_package(Threads REQUIRED)
 
-# Add pybind11 header only lib
-add_subdirectory(pybind11)
-pybind11_add_module(cppmodule cppmodule.cpp)
+add_subdirectory(pybind11) # add CMakeLists in pybind11 subdir to the cmake project
+pybind11_add_module(cppmodule cppmodule.cpp) # add_library() somewhere inside, creates cppmodule target
 
-# Add OpenCV package
+# Find and link OpenCV library
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(cppmodule PRIVATE ${OpenCV_LIBS}) # OpenCV_LIBS: list of targets to link
 
-# add_executable( cppmodule cppmodule.cpp )
-
-# Link libraries
-target_link_libraries(cppmodule PRIVATE ${OpenCV_LIBS})
+# Find and link Threads library
+find_package(Threads REQUIRED)
 target_link_libraries(cppmodule PRIVATE Threads::Threads) 

@@ -66,7 +66,11 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "numbers": "cpp",
+        "__locale": "cpp",
+        "__string": "cpp"
     },
-    "cmake.sourceDirectory": "${workspaceFolder}/cpp"
+    "cmake.sourceDirectory": "${workspaceFolder}/cpp",
+    "cmake.configureOnOpen": false
 }

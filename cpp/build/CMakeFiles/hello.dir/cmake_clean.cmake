@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/hello.dir/cuda.cu.o"
+  "CMakeFiles/hello.dir/cuda.cu.o.d"
   "hello"
   "hello.pdb"
 )

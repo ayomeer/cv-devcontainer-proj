@@ -4,10 +4,10 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/cpp/pybind11/**",
                 "/usr/local/include/opencv4",
-                "/usr/local/include/python3.10",
-                "/usr/local/cuda-12/**"
+                "/usr/local/cuda-12/**",
+                "/usr/include/**"
+                
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
