@@ -62,6 +62,7 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     int N = img_u_shape[1].cast<int>();
 
     // -- Algorithm
+    /*
     Mat img_u(M, N, CV_8UC3); // prepare return image
     
     size_t partitionSize = M/4;
@@ -75,8 +76,8 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     th2.join();
     th3.join();
     th4.join();
-
-    return img_u;
+    */
+    return img_d;//img_u;
 }       
 
 PYBIND11_MODULE(cppmodule, m){
