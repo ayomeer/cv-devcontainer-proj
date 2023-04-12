@@ -2,8 +2,6 @@
 #include <opencv2/opencv.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
-#include <thread>
-
 
 namespace py = pybind11;
 
@@ -13,36 +11,22 @@ typedef double matScalar;
 using namespace std;
 using namespace cv;
  
-void undistortCore( Mat& img_u, Mat& img_d, Mat& H, 
-                    size_t xPartitionStart, size_t xPartitionEnd){
+ /*
+__global__ void undistortKernel( Mat& img_u, Mat& img_d, Mat& H){
+}*/
 
-    double N = img_u.rows;
-    for (double m=xPartitionStart; m<xPartitionEnd; m++){ // double for compatibility when
-        for (double n=0; n<N; n++){                       // in matmul later on
-            // build undistorted, homogeneous coordinate vector
-            Mat xu = (Mat_<double>(3, 1) << m, n, 1);
-
-            // coordinate transform
-            Mat xd = H*xu;
-            
-            // convert back to inhom coords
-            xd = xd / xd.at<double>(2,0);
-
-            // round to integer indexes
-            xd.convertTo(xd, CV_32S);
-
-            // use transformed coords to get pixel value from distorted image
-            int x = xd.at<int>(0,0); 
-            int y = xd.at<int>(1,0); 
-            img_u.at<Vec3b>(m, n) = img_d.at<Vec3b>(Point(y, x)); // Point uses reverse order!
-        }
-    }
+__global__ void vectorAdd(int* a, int* b, int* c) {
+	int i = threadIdx.x;
+	c[i] = a[i] + b[i];
 }
+
 
 Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
                         py::tuple img_u_shape ){
 
+/*
+int main(){*/
     // -- Data type management
     // link pyImg_d data to cv::Mat object img
     Mat img_d(
@@ -62,21 +46,42 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     int N = img_u_shape[1].cast<int>();
 
     // -- Algorithm
-    /*
+
     Mat img_u(M, N, CV_8UC3); // prepare return image
     
-    size_t partitionSize = M/4;
+    // --- vectorAdd test ---
+    int a[] = {1,2,3,4,5,6};
+	int b[] = {2,3,4,5,6,7};
+	auto NUMBER_OF_VECTORS = sizeof(a) / sizeof(int);
+	int c[NUMBER_OF_VECTORS] = {0};
 
-    std::thread th1(undistortCore, ref(img_u), ref(img_d), ref(H), 0*partitionSize, 1*partitionSize);
-    std::thread th2(undistortCore, ref(img_u), ref(img_d), ref(H), 1*partitionSize, 2*partitionSize);
-    std::thread th3(undistortCore, ref(img_u), ref(img_d), ref(H), 2*partitionSize, 3*partitionSize);
-    std::thread th4(undistortCore, ref(img_u), ref(img_d), ref(H), 3*partitionSize, M);
-    
-    th1.join();
-    th2.join();
-    th3.join();
-    th4.join();
-    */
+	// create pointers into the GPU
+	int* cudaA;
+	int* cudaB;
+	int* cudaC;
+
+	// allocate memory in the GPU
+	cudaMalloc(&cudaA, sizeof(a));
+	cudaMalloc(&cudaB, sizeof(b));
+	cudaMalloc(&cudaC, sizeof(c));
+
+	// copy into GPU
+	cudaMemcpy(cudaA, a, sizeof(a), cudaMemcpyHostToDevice);
+	cudaMemcpy(cudaB, b, sizeof(a), cudaMemcpyHostToDevice);
+
+	auto GRID_SIZE = 1; 				 	// number of blocks in grid
+	auto BLOCK_SIZE = NUMBER_OF_VECTORS; 	// size of elements in block
+
+	vectorAdd <<< GRID_SIZE, BLOCK_SIZE >>> (cudaA, cudaB, cudaC);
+
+	// copy back out of GPU
+	cudaMemcpy(c, cudaC, sizeof(c), cudaMemcpyDeviceToHost);
+
+	for (int i = 0; i < NUMBER_OF_VECTORS; i++) {
+		std::cout << c[i] << " ";
+    }
+    std::cout << std::endl;
+
     return img_d;//img_u;
 }       
 

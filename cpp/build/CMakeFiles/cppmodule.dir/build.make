@@ -69,28 +69,28 @@ include CMakeFiles/cppmodule.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/cppmodule.dir/flags.make
 
-CMakeFiles/cppmodule.dir/cppmodule.cpp.o: CMakeFiles/cppmodule.dir/flags.make
-CMakeFiles/cppmodule.dir/cppmodule.cpp.o: ../cppmodule.cpp
-CMakeFiles/cppmodule.dir/cppmodule.cpp.o: CMakeFiles/cppmodule.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/app/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/cppmodule.dir/cppmodule.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cppmodule.dir/cppmodule.cpp.o -MF CMakeFiles/cppmodule.dir/cppmodule.cpp.o.d -o CMakeFiles/cppmodule.dir/cppmodule.cpp.o -c /app/cpp/cppmodule.cpp
+CMakeFiles/cppmodule.dir/cppmodule.cu.o: CMakeFiles/cppmodule.dir/flags.make
+CMakeFiles/cppmodule.dir/cppmodule.cu.o: ../cppmodule.cu
+CMakeFiles/cppmodule.dir/cppmodule.cu.o: CMakeFiles/cppmodule.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/app/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CUDA object CMakeFiles/cppmodule.dir/cppmodule.cu.o"
+	/usr/local/cuda/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/cppmodule.dir/cppmodule.cu.o -MF CMakeFiles/cppmodule.dir/cppmodule.cu.o.d -x cu -c /app/cpp/cppmodule.cu -o CMakeFiles/cppmodule.dir/cppmodule.cu.o
 
-CMakeFiles/cppmodule.dir/cppmodule.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cppmodule.dir/cppmodule.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /app/cpp/cppmodule.cpp > CMakeFiles/cppmodule.dir/cppmodule.cpp.i
+CMakeFiles/cppmodule.dir/cppmodule.cu.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CUDA source to CMakeFiles/cppmodule.dir/cppmodule.cu.i"
+	$(CMAKE_COMMAND) -E cmake_unimplemented_variable CMAKE_CUDA_CREATE_PREPROCESSED_SOURCE
 
-CMakeFiles/cppmodule.dir/cppmodule.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cppmodule.dir/cppmodule.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /app/cpp/cppmodule.cpp -o CMakeFiles/cppmodule.dir/cppmodule.cpp.s
+CMakeFiles/cppmodule.dir/cppmodule.cu.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CUDA source to assembly CMakeFiles/cppmodule.dir/cppmodule.cu.s"
+	$(CMAKE_COMMAND) -E cmake_unimplemented_variable CMAKE_CUDA_CREATE_ASSEMBLY_SOURCE
 
 # Object files for target cppmodule
 cppmodule_OBJECTS = \
-"CMakeFiles/cppmodule.dir/cppmodule.cpp.o"
+"CMakeFiles/cppmodule.dir/cppmodule.cu.o"
 
 # External object files for target cppmodule
 cppmodule_EXTERNAL_OBJECTS =
 
-cppmodule.cpython-310-x86_64-linux-gnu.so: CMakeFiles/cppmodule.dir/cppmodule.cpp.o
+cppmodule.cpython-310-x86_64-linux-gnu.so: CMakeFiles/cppmodule.dir/cppmodule.cu.o
 cppmodule.cpython-310-x86_64-linux-gnu.so: CMakeFiles/cppmodule.dir/build.make
 cppmodule.cpython-310-x86_64-linux-gnu.so: /usr/local/lib/libopencv_gapi.so.4.7.0
 cppmodule.cpython-310-x86_64-linux-gnu.so: /usr/local/lib/libopencv_highgui.so.4.7.0
@@ -108,7 +108,7 @@ cppmodule.cpython-310-x86_64-linux-gnu.so: /usr/local/lib/libopencv_flann.so.4.7
 cppmodule.cpython-310-x86_64-linux-gnu.so: /usr/local/lib/libopencv_imgproc.so.4.7.0
 cppmodule.cpython-310-x86_64-linux-gnu.so: /usr/local/lib/libopencv_core.so.4.7.0
 cppmodule.cpython-310-x86_64-linux-gnu.so: CMakeFiles/cppmodule.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/app/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX shared module cppmodule.cpython-310-x86_64-linux-gnu.so"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/app/cpp/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CUDA shared module cppmodule.cpython-310-x86_64-linux-gnu.so"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/cppmodule.dir/link.txt --verbose=$(VERBOSE)
 	/usr/bin/strip /app/cpp/build/cppmodule.cpython-310-x86_64-linux-gnu.so
 

@@ -1,6 +1,6 @@
 services:
   app: 
-    image: ayomeer/cv-devcontainer-image:cuda
+    image: cuda12.0:latest
     container_name: devcontainer
     command: sh
     network_mode: host  # works despite documentation saying it only works for linux host
@@ -16,10 +16,11 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu] # equivalent of '--gpus=all' in docker run command
-# uncomment if hosting Docker container on windows      
+
+   
     environment:
-      - DISPLAY=host.docker.internal:0.0 # set display environment to host IP
-      - MPLBACKEND=TkAgg                 # set matplotlib backend to X11 compatible one
+      - DISPLAY=host.docker.internal:0.0 # [WIN] set display environment to host IP
+      - MPLBACKEND=TkAgg                 # [WIN] set matplotlib backend to X11 compatible one
       # - PYTHONBREAKPOINT=ipdb.set_trace  # use ipdb for breakpoint()-function
     stdin_open: true
     tty: true

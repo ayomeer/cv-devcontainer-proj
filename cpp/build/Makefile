@@ -129,29 +129,29 @@ cppmodule/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/build
 .PHONY : cppmodule/fast
 
-cppmodule.o: cppmodule.cpp.o
+cppmodule.o: cppmodule.cu.o
 .PHONY : cppmodule.o
 
 # target to build an object file
-cppmodule.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.o
-.PHONY : cppmodule.cpp.o
+cppmodule.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cu.o
+.PHONY : cppmodule.cu.o
 
-cppmodule.i: cppmodule.cpp.i
+cppmodule.i: cppmodule.cu.i
 .PHONY : cppmodule.i
 
 # target to preprocess a source file
-cppmodule.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.i
-.PHONY : cppmodule.cpp.i
+cppmodule.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cu.i
+.PHONY : cppmodule.cu.i
 
-cppmodule.s: cppmodule.cpp.s
+cppmodule.s: cppmodule.cu.s
 .PHONY : cppmodule.s
 
 # target to generate assembly for a file
-cppmodule.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cpp.s
-.PHONY : cppmodule.cpp.s
+cppmodule.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cppmodule.dir/build.make CMakeFiles/cppmodule.dir/cppmodule.cu.s
+.PHONY : cppmodule.cu.s
 
 # Help Target
 help:
