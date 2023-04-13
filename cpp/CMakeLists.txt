@@ -16,6 +16,3 @@ set_target_properties(cppmodule PROPERTIES CUDA_ARCHITECTURES "61") # compute ca
 find_package(OpenCV REQUIRED)
 target_link_libraries(cppmodule PRIVATE ${OpenCV_LIBS}) # OpenCV_LIBS: list of targets to link
 
-# Find and link Threads library
-# find_package(Threads REQUIRED)
-# target_link_libraries(cppmodule PRIVATE Threads::Threads) 

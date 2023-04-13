@@ -69,7 +69,8 @@
         "variant": "cpp",
         "numbers": "cpp",
         "__locale": "cpp",
-        "__string": "cpp"
+        "__string": "cpp",
+        "semaphore": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/cpp",
     "cmake.configureOnOpen": false,
