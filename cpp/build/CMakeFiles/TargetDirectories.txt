@@ -1,3 +1,5 @@
 /app/cpp/build/CMakeFiles/cppmodule.dir
 /app/cpp/build/CMakeFiles/edit_cache.dir
 /app/cpp/build/CMakeFiles/rebuild_cache.dir
+/app/cpp/build/pybind11/CMakeFiles/edit_cache.dir
+/app/cpp/build/pybind11/CMakeFiles/rebuild_cache.dir
