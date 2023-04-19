@@ -16,9 +16,10 @@ using namespace cv;
 __global__ void undistortKernel( Mat& img_u, Mat& img_d, Mat& H){
 }*/
 
-__global__ void vectorAdd(int* a, int* b, int* c) {
-	int i = threadIdx.x;
-	c[i] = a[i] + b[i];
+__global__ void add(int* x, int* y, int* r)
+{
+    int i = threadIdx.x;
+    r[i] = x[i] + y[i];
 }
 
 /*
@@ -52,56 +53,48 @@ int main(){
     Mat img_u(M, N, CV_8UC3); // prepare return image
     */
     
-    // --- vectorAdd test ---
-    int a[] = {1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12};
-	int b[] = {1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12};
-	auto NUMBER_OF_VECTORS = sizeof(a) / sizeof(int);
-	int c[NUMBER_OF_VECTORS] = {0};
+    // --- unified memory test ---
+    int N = 1<<20;
 
-	// create pointers into the GPU
-	int* cudaA;
-	int* cudaB;
-	int* cudaC;
+    int arrX[] = {1,2,3,4};
+    int arrY[] = {1,2,3,4};
+    int arrR[4];
 
-	// allocate memory in the GPU
-	cudaMallocManaged(&cudaA, sizeof(a));
-	cudaMallocManaged(&cudaB, sizeof(b));
-	cudaMallocManaged(&cudaC, sizeof(c));
-    
+    int* x;
+    int* y;
+    int* r;
+
+    x = arrX;
+    y = arrY;
+    r = arrR;
+
     auto start = chrono::steady_clock::now();
 
-	// copy into GPU
-	cudaMemcpy(cudaA, a, sizeof(a), cudaMemcpyHostToDevice);
-	cudaMemcpy(cudaB, b, sizeof(a), cudaMemcpyHostToDevice);
+    // Allocate Unified Memory – accessible from CPU or GPU
+    cudaMallocManaged(&x, sizeof(arrX));
+    cudaMallocManaged(&y, sizeof(arrY));
+    cudaMallocManaged(&r, sizeof(arrR));
 
-	auto GRID_SIZE = 1; 				 	// number of blocks in grid
-	auto BLOCK_SIZE = NUMBER_OF_VECTORS; 	// size of elements in block
+    auto end = chrono::steady_clock::now();
 
-    // CPU waits till kernel finished executing before moving on to next line of host code
-	vectorAdd <<< GRID_SIZE, BLOCK_SIZE >>> (cudaA, cudaB, cudaC);
-	
-    // copy back out of GPU
-	cudaMemcpy(c, cudaC, sizeof(c), cudaMemcpyDeviceToHost);
+    // Run kernel on 1M elements on the GPU
+    add<<<1, 4>>>(arrX, arrY, arrR);
 
+    // Wait for GPU to finish before accessing on host
+    cudaDeviceSynchronize();
 
+    
 
-    auto end = chrono::steady_clock::now(); 
+    // timing output
     cout << "Elapsed time in microseconds: "
-        << chrono::duration_cast<chrono::microseconds>(end - start).count()
-        << " µs" << endl;
+    << chrono::duration_cast<chrono::microseconds>(end - start).count()
+    << " µs" << endl;
 
-    // print computation result
-	for (int i = 0; i < NUMBER_OF_VECTORS; i++) {
-		std::cout << c[i] << " ";
-    }
-    std::cout << std::endl;
+    // Free memory
+    cudaFree(arrX);
+    cudaFree(arrY);
+    cudaFree(arrR);
 
-
-
-    // free memory
-    cudaFree(cudaA);
-    cudaFree(cudaB);
-    cudaFree(cudaC);
 
     return 0;//img_d;//img_u;
 }       
