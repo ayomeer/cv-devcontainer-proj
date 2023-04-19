@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
+// #include <pybind11/pybind11.h>
+// #include <pybind11/numpy.h>
 #include <chrono>
 
-namespace py = pybind11;
+// namespace py = pybind11;
 
 typedef std::uint8_t imgScalar;
 typedef double matScalar;
@@ -21,15 +21,16 @@ __global__ void vectorAdd(int* a, int* b, int* c) {
 	c[i] = a[i] + b[i];
 }
 
-
+/*
 Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
                         py::tuple img_u_shape ){
+*/
 
-/*
-int main(){*/
+int main(){
     // -- Data type management
     // link pyImg_d data to cv::Mat object img
+    /*
     Mat img_d(
         pyImg_d.shape(0),               // rows
         pyImg_d.shape(1),               // cols
@@ -49,10 +50,8 @@ int main(){*/
     // -- Algorithm
 
     Mat img_u(M, N, CV_8UC3); // prepare return image
+    */
     
-    using namespace std::chrono;
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::high_resolution_clock::now();
     // --- vectorAdd test ---
     int a[] = {1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12};
 	int b[] = {1,2,3,4,5,6,7,8,9,10,11,12,1,2,3,4,5,6,7,8,9,10,11,12};
@@ -65,9 +64,11 @@ int main(){*/
 	int* cudaC;
 
 	// allocate memory in the GPU
-	cudaMalloc(&cudaA, sizeof(a));
-	cudaMalloc(&cudaB, sizeof(b));
-	cudaMalloc(&cudaC, sizeof(c));
+	cudaMallocManaged(&cudaA, sizeof(a));
+	cudaMallocManaged(&cudaB, sizeof(b));
+	cudaMallocManaged(&cudaC, sizeof(c));
+    
+    auto start = chrono::steady_clock::now();
 
 	// copy into GPU
 	cudaMemcpy(cudaA, a, sizeof(a), cudaMemcpyHostToDevice);
@@ -76,18 +77,18 @@ int main(){*/
 	auto GRID_SIZE = 1; 				 	// number of blocks in grid
 	auto BLOCK_SIZE = NUMBER_OF_VECTORS; 	// size of elements in block
 
+    // CPU waits till kernel finished executing before moving on to next line of host code
 	vectorAdd <<< GRID_SIZE, BLOCK_SIZE >>> (cudaA, cudaB, cudaC);
-
-	// copy back out of GPU
-    cudaDeviceSynchronize();
+	
+    // copy back out of GPU
 	cudaMemcpy(c, cudaC, sizeof(c), cudaMemcpyDeviceToHost);
-    end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double> elapsed_seconds = end - start;
-    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
- 
-    std::cout << "finished computation at " << std::ctime(&end_time)
-              << "elapsed time: " << elapsed_seconds.count() << "s\n";
+
+
+    auto end = chrono::steady_clock::now(); 
+    cout << "Elapsed time in microseconds: "
+        << chrono::duration_cast<chrono::microseconds>(end - start).count()
+        << " µs" << endl;
 
     // print computation result
 	for (int i = 0; i < NUMBER_OF_VECTORS; i++) {
@@ -96,9 +97,15 @@ int main(){*/
     std::cout << std::endl;
 
 
-    return img_d;//img_u;
-}       
 
+    // free memory
+    cudaFree(cudaA);
+    cudaFree(cudaB);
+    cudaFree(cudaC);
+
+    return 0;//img_d;//img_u;
+}       
+/*
 PYBIND11_MODULE(cppmodule, m){
         m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
         m.doc() = "Docstring for pointwiseUndistort function";
@@ -124,3 +131,4 @@ PYBIND11_MODULE(cppmodule, m){
                 })
             ;
     }
+*/

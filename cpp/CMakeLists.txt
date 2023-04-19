@@ -8,8 +8,10 @@ set(CMAKE_CSS_STANDARD_REQUIRED ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON) # use the -pthread compiler and linker flag
 set(CMAKE_THREAD_PREFER_PTHREAD ON) # use pthread library if multiple thread libraries available
 
-add_subdirectory(pybind11) # add CMakeLists in pybind11 subdir to the cmake project
-pybind11_add_module(cppmodule cppmodule.cu) # add_library() somewhere inside, creates cppmodule target
+add_executable(cppmodule cppmodule.cu)
+
+# add_subdirectory(pybind11) # add CMakeLists in pybind11 subdir to the cmake project
+# pybind11_add_module(cppmodule cppmodule.cu) # add_library() somewhere inside, creates cppmodule target
 set_target_properties(cppmodule PROPERTIES CUDA_ARCHITECTURES "61") # compute capability version nvidia quadro is 7.5 --> "75"
 
 # Find and link OpenCV library
