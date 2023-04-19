@@ -16,12 +16,9 @@ using namespace cv;
 __global__ void undistortKernel( Mat& img_u, Mat& img_d, Mat& H){
 }*/
 
-__global__ void add(int* x, int* y, int* r)
-{
-    int i = threadIdx.x;
-    r[i] = x[i] + y[i];
+__global__ void AplusB(int *ret, int a, int b) {
+    ret[threadIdx.x] = a + b + threadIdx.x;
 }
-
 /*
 Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
@@ -54,46 +51,26 @@ int main(){
     */
     
     // --- unified memory test ---
-    int N = 1<<20;
 
-    int arrX[] = {1,2,3,4};
-    int arrY[] = {1,2,3,4};
-    int arrR[4];
-
-    int* x;
-    int* y;
-    int* r;
-
-    x = arrX;
-    y = arrY;
-    r = arrR;
-
-    auto start = chrono::steady_clock::now();
-
-    // Allocate Unified Memory – accessible from CPU or GPU
-    cudaMallocManaged(&x, sizeof(arrX));
-    cudaMallocManaged(&y, sizeof(arrY));
-    cudaMallocManaged(&r, sizeof(arrR));
-
-    auto end = chrono::steady_clock::now();
-
-    // Run kernel on 1M elements on the GPU
-    add<<<1, 4>>>(arrX, arrY, arrR);
-
-    // Wait for GPU to finish before accessing on host
-    cudaDeviceSynchronize();
-
+    // return pointer
+    int *ret;
+    // allocate space of array to pointer
+    cudaMallocManaged(&ret, 1000 * sizeof(int));
     
+    // run kernels
+    AplusB<<< 1, 1000 >>>(ret, 10, 100);
+    cudaDeviceSynchronize();
+    
+    // output
+    for(int i = 0; i < 1000; i++)
+        printf("%d: A+B = %d\n", i, ret[i]);
+    
+    // free space
+    cudaFree(ret);
 
-    // timing output
-    cout << "Elapsed time in microseconds: "
-    << chrono::duration_cast<chrono::microseconds>(end - start).count()
-    << " µs" << endl;
 
     // Free memory
-    cudaFree(arrX);
-    cudaFree(arrY);
-    cudaFree(arrR);
+
 
 
     return 0;//img_d;//img_u;
