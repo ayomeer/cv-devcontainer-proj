@@ -2,7 +2,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
-import cv2
 import time
 
 # --- Constants ----------------------------------------------------------- #

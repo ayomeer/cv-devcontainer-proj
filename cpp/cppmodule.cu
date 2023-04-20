@@ -88,8 +88,8 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     //cudaFree(u);
 
 
-
-    return img_u;
+    Mat ret = img_u_gpu;
+    return ret;
 }       
 
 PYBIND11_MODULE(cppmodule, m){

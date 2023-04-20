@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.0.1-devel-ubuntu22.04
 WORKDIR /app
 
 
@@ -26,13 +26,13 @@ RUN mkdir -p /opt/opencv && cd /opt/opencv && \
     wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && unzip opencv.zip && \
 	wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip && unzip opencv_contrib.zip && \
     rm opencv.zip opencv_contrib.zip && \
-    mkdir -p build && cd build # && \ 
+    mkdir -p build && cd build && \ 
     cmake \
 	-D CMAKE_BUILD_TYPE=Release \
     -D CMAKE_INSTALL_PREFIX=/usr/local \
 	-D PYTHON_EXECUTABLE=$(which python3) \
     -D PYTHON3_PACKAGES_PATH=/usr/lib/python3/dist-packages \
-    -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-${OPENCV_VERSION} \
+    -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib-${OPENCV_VERSION}/modules \
     -D WITH_CUDA=ON \
     -D BUILD_TESTS=OFF\
     -D BUILD_PERF_TESTS=OFF \
