@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/cppmodule.dir/cppmodule.cu.o"
   "CMakeFiles/cppmodule.dir/cppmodule.cu.o.d"
-  "cppmodule.cpython-310-x86_64-linux-gnu.so"
+  "cppmodule"
   "cppmodule.pdb"
 )
 

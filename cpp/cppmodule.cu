@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <cmath>
-#include <opencv2/core.hpp>
+#include <opencv2/core/cuda/common.hpp>
 #include <opencv2/opencv.hpp>
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
+#include <opencv2/cudev.hpp>
+//#include <pybind11/pybind11.h>
+//#include <pybind11/numpy.h>
 #include <chrono>
 
-namespace py = pybind11;
+// namespace py = pybind11;
 
 typedef std::uint8_t imgScalar;
 typedef double matScalar;
@@ -22,19 +23,16 @@ using namespace cv;
 
 __global__ void undistortKernel
 (
-    cv::cuda::PtrStepSz<uchar3> img_u, 
-    cv::cuda::PtrStepSz<uchar3> img_d
+    cv::cuda::PtrStepSz<uchar3> img_u
 )
 {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    img_u.ptr(i)[j] = img_d.ptr(i)[j];
- 
-
+    img_u.ptr(i)[j] = img_u.ptr(j)[i];
 
 }
-
+/*
 Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
                         py::tuple img_u_shape ){
@@ -64,34 +62,43 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     cuda::GpuMat img_u_gpu(img_u); // create GpuMat from regular Mat
 
     // ---  Algorithm --------------------------------------------------
+*/
+int main(){
 
     // pointer to gpu data
-    //cuda::GpuMat* u;
-    //cuda::GpuMat* d;
+  /*  cuda::GpuMat* u;
+    cuda::GpuMat* d;
 
     // allocate space of target image u
-    //cudaMallocManaged(&u, sizeof(img_u));
-    //cudaMallocManaged(&d, sizeof(img_d));
-    
+    cudaMallocManaged(&u, sizeof(img_u));
+    cudaMallocManaged(&d, sizeof(img_d));*/
+
+    Mat img = imread("../_img/chessboard_perspective.jpg", IMREAD_COLOR );
+    auto M = img.rows;
+    auto N = img.cols;
+
+    cv::cuda::GpuMat src;
+    src.upload(img);
+
     // run kernels
-    auto numBlocks = 2500;
-    dim3 blockSize(16,16);
-    dim3 gridSize(ceil(numBlocks/16), ceil(numBlocks/16)); // ceil: maybe not all threads used -> handle in kernel function
+    const dim3 blockSize(16,16);
+    const dim3 gridSize(cv::cudev::divUp(src.cols, blockSize.x), 
+                        cv::cudev::divUp(src.rows, blockSize.y)); // ceil: maybe not all threads used -> handle in kernel function
     
-    undistortKernel<<<gridSize, blockSize>>>(img_u_gpu, img_d_gpu);
+    undistortKernel<<<gridSize, blockSize>>>(src);
     cudaDeviceSynchronize();
     
+    Mat ret(src);
 
-    
-    
+    imshow("gpu image", ret);
+    waitKey(0);
+
     // free space
     //cudaFree(u);
 
-
-    Mat ret = img_u_gpu;
-    return ret;
+    return 0;
 }       
-
+/*
 PYBIND11_MODULE(cppmodule, m){
     m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
     m.doc() = "Docstring for pointwiseUndistort function";
@@ -117,3 +124,4 @@ PYBIND11_MODULE(cppmodule, m){
             })
         ;
     }
+*/

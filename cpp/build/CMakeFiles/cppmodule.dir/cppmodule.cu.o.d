@@ -152,7 +152,8 @@ CMakeFiles/cppmodule.dir/cppmodule.cu.o : /app/cpp/cppmodule.cu \
     /usr/include/c++/11/bits/move.h \
     /usr/include/c++/11/type_traits \
     /usr/include/c++/11/initializer_list \
-    /usr/local/include/opencv4/opencv2/core.hpp \
+    /usr/local/include/opencv4/opencv2/core/cuda/common.hpp \
+    /usr/local/include/opencv4/opencv2/core/cuda_types.hpp \
     /usr/local/include/opencv4/opencv2/core/cvdef.h \
     /usr/local/include/opencv4/opencv2/core/version.hpp \
     /usr/include/c++/11/limits \
@@ -271,6 +272,8 @@ CMakeFiles/cppmodule.dir/cppmodule.cu.o : /app/cpp/cppmodule.cu \
     /usr/local/include/opencv4/opencv2/core/neon_utils.hpp \
     /usr/local/include/opencv4/opencv2/core/vsx_utils.hpp \
     /usr/local/include/opencv4/opencv2/core/check.hpp \
+    /usr/local/include/opencv4/opencv2/opencv.hpp \
+    /usr/local/include/opencv4/opencv2/core.hpp \
     /usr/local/include/opencv4/opencv2/core/traits.hpp \
     /usr/local/include/opencv4/opencv2/core/matx.hpp \
     /usr/local/include/opencv4/opencv2/core/saturate.hpp \
@@ -326,7 +329,6 @@ CMakeFiles/cppmodule.dir/cppmodule.cu.o : /app/cpp/cppmodule.cu \
     /usr/include/c++/11/bits/unique_lock.h \
     /usr/local/include/opencv4/opencv2/core/optim.hpp \
     /usr/local/include/opencv4/opencv2/core/ovx.hpp \
-    /usr/local/include/opencv4/opencv2/opencv.hpp \
     /usr/local/include/opencv4/opencv2/calib3d.hpp \
     /usr/local/include/opencv4/opencv2/features2d.hpp \
     /usr/local/include/opencv4/opencv2/flann/miniflann.hpp \
@@ -412,7 +414,6 @@ CMakeFiles/cppmodule.dir/cppmodule.cu.o : /app/cpp/cppmodule.cu \
     /usr/local/include/opencv4/opencv2/stitching/warpers.hpp \
     /usr/local/include/opencv4/opencv2/stitching/detail/warpers.hpp \
     /usr/local/include/opencv4/opencv2/core/cuda.hpp \
-    /usr/local/include/opencv4/opencv2/core/cuda_types.hpp \
     /usr/local/include/opencv4/opencv2/core/cuda.inl.hpp \
     /usr/local/include/opencv4/opencv2/stitching/detail/warpers_inl.hpp \
     /usr/local/include/opencv4/opencv2/stitching/detail/matchers.hpp \
@@ -434,162 +435,124 @@ CMakeFiles/cppmodule.dir/cppmodule.cu.o : /app/cpp/cppmodule.cu \
     /usr/local/include/opencv4/opencv2/video.hpp \
     /usr/local/include/opencv4/opencv2/video/tracking.hpp \
     /usr/local/include/opencv4/opencv2/video/background_segm.hpp \
-    /app/cpp/pybind11/include/pybind11/pybind11.h \
-    /app/cpp/pybind11/include/pybind11/detail/class.h \
-    /app/cpp/pybind11/include/pybind11/attr.h \
-    /app/cpp/pybind11/include/pybind11/detail/common.h \
-    /usr/include/python3.10/Python.h \
-    /usr/include/python3.10/patchlevel.h \
-    /usr/include/python3.10/pyconfig.h \
-    /usr/include/x86_64-linux-gnu/python3.10/pyconfig.h \
-    /usr/include/python3.10/pymacconfig.h \
-    /usr/include/unistd.h \
-    /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
-    /usr/include/x86_64-linux-gnu/bits/environments.h \
-    /usr/include/x86_64-linux-gnu/bits/confname.h \
-    /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
-    /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
-    /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
-    /usr/include/linux/close_range.h \
-    /usr/include/python3.10/pyport.h \
-    /usr/include/inttypes.h \
-    /usr/include/x86_64-linux-gnu/sys/time.h \
-    /usr/include/x86_64-linux-gnu/sys/stat.h \
-    /usr/include/x86_64-linux-gnu/bits/stat.h \
-    /usr/include/x86_64-linux-gnu/bits/struct_stat.h \
-    /usr/include/x86_64-linux-gnu/bits/statx.h \
-    /usr/include/linux/stat.h \
-    /usr/include/linux/types.h \
-    /usr/include/x86_64-linux-gnu/asm/types.h \
-    /usr/include/asm-generic/types.h \
-    /usr/include/asm-generic/int-ll64.h \
-    /usr/include/x86_64-linux-gnu/asm/bitsperlong.h \
-    /usr/include/asm-generic/bitsperlong.h \
-    /usr/include/linux/posix_types.h \
-    /usr/include/linux/stddef.h \
-    /usr/include/x86_64-linux-gnu/asm/posix_types.h \
-    /usr/include/x86_64-linux-gnu/asm/posix_types_64.h \
-    /usr/include/asm-generic/posix_types.h \
-    /usr/include/x86_64-linux-gnu/bits/statx-generic.h \
-    /usr/include/x86_64-linux-gnu/bits/types/struct_statx_timestamp.h \
-    /usr/include/x86_64-linux-gnu/bits/types/struct_statx.h \
-    /usr/include/python3.10/exports.h \
-    /usr/include/python3.10/pymacro.h \
-    /usr/include/python3.10/pymath.h \
-    /usr/include/python3.10/pymem.h \
-    /usr/include/python3.10/cpython/pymem.h \
-    /usr/include/python3.10/object.h \
-    /usr/include/python3.10/cpython/object.h \
-    /usr/include/python3.10/objimpl.h \
-    /usr/include/python3.10/cpython/objimpl.h \
-    /usr/include/python3.10/typeslots.h \
-    /usr/include/python3.10/pyhash.h \
-    /usr/include/python3.10/cpython/pydebug.h \
-    /usr/include/python3.10/bytearrayobject.h \
-    /usr/include/python3.10/cpython/bytearrayobject.h \
-    /usr/include/python3.10/bytesobject.h \
-    /usr/include/python3.10/cpython/bytesobject.h \
-    /usr/include/python3.10/unicodeobject.h \
-    /usr/include/python3.10/cpython/unicodeobject.h \
-    /usr/include/python3.10/longobject.h \
-    /usr/include/python3.10/longintrepr.h \
-    /usr/include/python3.10/boolobject.h \
-    /usr/include/python3.10/floatobject.h \
-    /usr/include/python3.10/complexobject.h \
-    /usr/include/python3.10/rangeobject.h \
-    /usr/include/python3.10/memoryobject.h \
-    /usr/include/python3.10/tupleobject.h \
-    /usr/include/python3.10/cpython/tupleobject.h \
-    /usr/include/python3.10/listobject.h \
-    /usr/include/python3.10/cpython/listobject.h \
-    /usr/include/python3.10/dictobject.h \
-    /usr/include/python3.10/cpython/dictobject.h \
-    /usr/include/python3.10/cpython/odictobject.h \
-    /usr/include/python3.10/enumobject.h \
-    /usr/include/python3.10/setobject.h \
-    /usr/include/python3.10/methodobject.h \
-    /usr/include/python3.10/cpython/methodobject.h \
-    /usr/include/python3.10/moduleobject.h \
-    /usr/include/python3.10/funcobject.h \
-    /usr/include/python3.10/classobject.h \
-    /usr/include/python3.10/fileobject.h \
-    /usr/include/python3.10/cpython/fileobject.h \
-    /usr/include/python3.10/pycapsule.h \
-    /usr/include/python3.10/code.h \
-    /usr/include/python3.10/cpython/code.h \
-    /usr/include/python3.10/pyframe.h \
-    /usr/include/python3.10/traceback.h \
-    /usr/include/python3.10/cpython/traceback.h \
-    /usr/include/python3.10/sliceobject.h \
-    /usr/include/python3.10/cellobject.h \
-    /usr/include/python3.10/iterobject.h \
-    /usr/include/python3.10/cpython/initconfig.h \
-    /usr/include/python3.10/genobject.h \
-    /usr/include/python3.10/pystate.h \
-    /usr/include/python3.10/cpython/pystate.h \
-    /usr/include/python3.10/abstract.h \
-    /usr/include/python3.10/cpython/abstract.h \
-    /usr/include/python3.10/descrobject.h \
-    /usr/include/python3.10/genericaliasobject.h \
-    /usr/include/python3.10/warnings.h \
-    /usr/include/python3.10/weakrefobject.h \
-    /usr/include/python3.10/structseq.h \
-    /usr/include/python3.10/namespaceobject.h \
-    /usr/include/python3.10/cpython/picklebufobject.h \
-    /usr/include/python3.10/cpython/pytime.h \
-    /usr/include/python3.10/codecs.h \
-    /usr/include/python3.10/pyerrors.h \
-    /usr/include/python3.10/cpython/pyerrors.h \
-    /usr/include/python3.10/pythread.h \
-    /usr/include/python3.10/context.h \
-    /usr/include/python3.10/modsupport.h \
-    /usr/include/python3.10/compile.h \
-    /usr/include/python3.10/cpython/compile.h \
-    /usr/include/python3.10/pythonrun.h \
-    /usr/include/python3.10/cpython/pythonrun.h \
-    /usr/include/python3.10/pylifecycle.h \
-    /usr/include/python3.10/cpython/pylifecycle.h \
-    /usr/include/python3.10/ceval.h \
-    /usr/include/python3.10/cpython/ceval.h \
-    /usr/include/python3.10/sysmodule.h \
-    /usr/include/python3.10/cpython/sysmodule.h \
-    /usr/include/python3.10/osmodule.h \
-    /usr/include/python3.10/intrcheck.h \
-    /usr/include/python3.10/import.h \
-    /usr/include/python3.10/cpython/import.h \
-    /usr/include/python3.10/bltinmodule.h \
-    /usr/include/python3.10/eval.h \
-    /usr/include/python3.10/cpython/pyctype.h \
-    /usr/include/python3.10/pystrtod.h \
-    /usr/include/python3.10/pystrcmp.h \
-    /usr/include/python3.10/fileutils.h \
-    /usr/include/python3.10/cpython/fileutils.h \
-    /usr/include/python3.10/cpython/pyfpe.h \
-    /usr/include/python3.10/tracemalloc.h \
-    /usr/include/python3.10/frameobject.h \
-    /usr/include/python3.10/cpython/frameobject.h \
-    /usr/include/c++/11/forward_list \
-    /usr/include/c++/11/bits/forward_list.h \
-    /usr/include/c++/11/bits/forward_list.tcc \
-    /usr/include/c++/11/typeindex \
-    /usr/include/c++/11/unordered_set \
-    /usr/include/c++/11/bits/unordered_set.h \
-    /usr/include/c++/11/version \
-    /app/cpp/pybind11/include/pybind11/cast.h \
-    /app/cpp/pybind11/include/pybind11/detail/descr.h \
-    /app/cpp/pybind11/include/pybind11/detail/type_caster_base.h \
-    /app/cpp/pybind11/include/pybind11/pytypes.h \
-    /app/cpp/pybind11/include/pybind11/buffer_info.h \
-    /usr/include/c++/11/iterator \
-    /usr/include/c++/11/bits/stream_iterator.h \
-    /app/cpp/pybind11/include/pybind11/detail/internals.h \
-    /app/cpp/pybind11/include/pybind11/detail/typeid.h \
-    /usr/include/c++/11/cxxabi.h \
-    /usr/include/x86_64-linux-gnu/c++/11/bits/cxxabi_tweaks.h \
-    /app/cpp/pybind11/include/pybind11/options.h \
-    /app/cpp/pybind11/include/pybind11/detail/init.h \
-    /app/cpp/pybind11/include/pybind11/gil.h \
-    /app/cpp/pybind11/include/pybind11/numpy.h \
-    /app/cpp/pybind11/include/pybind11/complex.h \
-    /usr/include/c++/11/numeric \
-    /usr/include/c++/11/bits/stl_numeric.h
+    /usr/local/include/opencv4/opencv2/cudev.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/common.hpp \
+    /usr/local/include/opencv4/opencv2/core/cuda_stream_accessor.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/atomic.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/limits.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/saturate_cast.hpp \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/cuda_fp16.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/cuda_fp16.hpp \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/nv/target \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/nv/detail/__target_macros \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/nv/detail/__preprocessor \
+    /usr/local/include/opencv4/opencv2/cudev/util/simd_functions.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/tuple.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/detail/tuple.hpp \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/tuple.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/version.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/config.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/simple_defines.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/compiler.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/cpp_dialect.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/cpp_compatibility.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/deprecated.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/host_system.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/device_system.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/host_device.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/debug.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/forceinline.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/exec_check_disable.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/global_workarounds.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/config/namespace.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/tuple.inl \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/type_traits.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/cuda/std/type_traits \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/cstddef \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/version \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/__config \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/__config \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/__pragma_push \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/__pragma_push \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/__undef_macros \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/version \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/__pragma_pop \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/__pragma_pop \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/cstddef \
+    /usr/local/cuda-12.0/targets/x86_64-linux/include/cuda/std/detail/libcxx/include/type_traits \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/type_traits/has_trivial_assign.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/swap.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/pair.h \
+    /usr/local/cuda/bin/../targets/x86_64-linux/include/thrust/detail/pair.inl \
+    /usr/local/include/opencv4/opencv2/cudev/util/type_traits.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/vec_traits.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/detail/type_traits.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/util/vec_math.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/functional/color_cvt.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/functional/detail/color_cvt.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/functional/functional.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/functional/tuple_adapter.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/warp/reduce.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/warp/detail/reduce.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/warp/shuffle.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/block.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/warp/warp.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/warp/detail/reduce_key_val.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/warp/scan.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/dynamic_smem.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/reduce.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/detail/reduce.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/detail/reduce_key_val.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/scan.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/block/vec_distance.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/copy.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/traits.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/gpumat.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/expr.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/glob.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/detail/gpumat.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/mask.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/zip.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/copy.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/reduce.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/transform.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/reduce.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/minmaxloc.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/histogram.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/histogram.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/integral.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/integral.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/pyramids.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/extrapolation.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/pyr_down.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/pyr_up.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/reduce_to_vec.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/reduce_to_column.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/reduce_to_row.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/split_merge.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/split_merge.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/transform.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/transform.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/transpose.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/grid/detail/transpose.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/constant.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/deriv.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/interpolation.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/lut.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/remap.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/resize.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/texture.hpp \
+    /usr/local/include/opencv4/opencv2/core/utils/logger.hpp \
+    /usr/local/include/opencv4/opencv2/core/utils/logger.defines.hpp \
+    /usr/local/include/opencv4/opencv2/core/utils/logtag.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/ptr2d/warping.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/binary_func.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/binary_op.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/color.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/deriv.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/per_element_func.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/reduction.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/unary_func.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/unary_op.hpp \
+    /usr/local/include/opencv4/opencv2/cudev/expr/warping.hpp
