@@ -1,6 +1,6 @@
 services:
   app: 
-    image: cvcuda
+    image: ayomeer/cv-devcontainer-image:cvcuda
     container_name: devcontainer
     command: sh
     network_mode: host  # works despite documentation saying it only works for linux host
