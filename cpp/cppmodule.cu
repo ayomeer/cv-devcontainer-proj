@@ -14,21 +14,32 @@ typedef double matScalar;
 
 using namespace std;
 using namespace cv;
- 
-cv::cuda::GpuMat H_d;
 
+// Cuda Kernel
 __global__ void undistortKernel
 (
-    cv::cuda::PtrStepSz<uchar3> img_d,
-    cv::cuda::PtrStepSz<uchar3> img_u
+    const cv::cuda::PtrStepSz<uchar3> src,
+    cv::cuda::PtrStepSz<uchar3> dst,
+    float* H
 )
 {
+    // Get dst pixel indexes for this thread from CUDA framework
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    img_u.ptr(i)[j] = img_d.ptr(i)[j];
+    // H*xu_hom
+    float xd_hom_0 = H[0]*i + H[1]*j + H[2];
+    float xd_hom_1 = H[3]*i + H[4]*j + H[5];
+    float xd_hom_2 = H[6]*i + H[7]*j + H[8];
 
+    // Convert to inhom and round to int for use as indexes
+    int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
+    int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
+
+    // Get rgb value from src image 
+    dst.ptr(i)[j] = src.ptr(xd_0)[xd_1];
 }
+
 /*
 Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
@@ -60,29 +71,27 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
 
     // ---  Algorithm --------------------------------------------------
 */
+
 int main(){
 
+   // Loading H-coefs into array for passing to CUDA Kernel
+    float H[] = {3.55082e-1, 1.51274e-1, 4.8e+1, 
+                -4.27999e-1, 5.60277e-1, 3.85e+2,
+                -2.72420e-4, -1.27368e-4, 1e+0};
+    
+    float* dPtr_H = 0;
+    cudaMalloc(&dPtr_H, sizeof(H));
+    cudaMemcpy(dPtr_H, H, sizeof(H), cudaMemcpyHostToDevice);
 
-    Mat H(3,3,CV_32FC1); 
-    // Construct H matrix (later passed by python)
-    H.at<float>(0,0) = 3.55082e-1;  H.at<float>(0,0) = 1.51274e-1; H.at<float>(0,0) = 4.8e+1;
-    H.at<float>(0,0) = -4.27999e-1; H.at<float>(0,0) = 5.60277e-1; H.at<float>(0,0) = 3.85e+2;
-    H.at<float>(0,0) = -2.72420e-4; H.at<float>(0,0) = -1.27368e-4; H.at<float>(0,0) = 1e+0;
-    
-    H_d.create(3,3,CV_32FC1); // allocates space on GPU
-    H_d.upload(H);
-    
+
     // prep input image and return image  
     Mat img = imread("/app/_img/chessboard_perspective.jpg", IMREAD_COLOR );
     cv::cuda::GpuMat src;
     
     Mat ret;
-    cv::cuda::GpuMat dst(800, 800, CV_8UC3); // allocate sapce 
+    cv::cuda::GpuMat dst(800, 800, CV_8UC3); // allocate space 
     
-    
-
-    // Host code 
-    
+    // Prep Kernel Launch
     src.upload(img);
     
     const dim3 blockSize(16,16);
@@ -94,7 +103,7 @@ int main(){
 
     src.upload(img);
     
-    undistortKernel<<<gridSize, blockSize>>>(src, dst);
+    undistortKernel<<<gridSize, blockSize>>>(src, dst, dPtr_H);
     cudaDeviceSynchronize();
     
     dst.download(ret);
@@ -103,7 +112,7 @@ int main(){
     auto start = chrono::steady_clock::now();
     src.upload(img);
     
-    undistortKernel<<<gridSize, blockSize>>>(src, dst);
+    undistortKernel<<<gridSize, blockSize>>>(src, dst, dPtr_H);
     cudaDeviceSynchronize();
     
     dst.download(ret);
@@ -119,8 +128,6 @@ int main(){
     imshow("gpu image", ret);
     waitKey(0);
 
-    // free space
-    //cudaFree(u);
 
     return 0;
 }       
