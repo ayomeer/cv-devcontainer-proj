@@ -96,7 +96,7 @@ int main(){
     
     const dim3 blockSize(16,16);
     const dim3 gridSize(cv::cudev::divUp(dst.cols, blockSize.x), 
-                        cv::cudev::divUp(dst.rows, blockSize.y)); // ceil: maybe not all threads used -> handle in kernel function
+                        cv::cudev::divUp(dst.rows, blockSize.y)); 
 
 
     // -- Kernel Launch 1 (slow) ------------------------------------------------------- 
