@@ -119,7 +119,7 @@ void pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
         << chrono::duration_cast<chrono::microseconds>(end - start).count()
         << " µs" << endl;
 
-    imshow("gpu image", ret);
+    imshow("ret image", ret);
     waitKey(0);
 
 

@@ -68,7 +68,7 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
 
 def main():
     # Reading image
-    imgName = '/app/_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
+    imgName = '/app/_img/perspective.jpg' 
     img_d = plt.imread(imgName)
 
     # plt.figure(figsize=FIGURE_SIZE)
@@ -76,26 +76,33 @@ def main():
     # plt.show(block=False)
 
     # Define shape undistorted image
-    M = N = 800
+    
  
-    # Pre-defined reference points in distorted and undistorted image
-    x_d = np.array([[48, 385], [188, 927], [424, 55], [665, 721]])
-    x_u = np.array([[0, 0], [0, N-1], [M-1, 0], [M-1, N-1]])
+    # 4-point corresponences chessboard_perspective
+    # M, N = 800, 800
+    # x_d = np.array([[48, 385], [188, 927], [424, 55], [665, 721]])
+    # x_u = np.array([[0, 0], [0, N-1], [M-1, 0], [M-1, N-1]])
+    
 
-    # Show reference point in original, distorted image
+    # 4-point corresponences box
+    M, N = 600, 800 
+    x_d = np.array([[163, 1605], [459, 2841], [722, 875], [1300, 2206]])
+    x_u = np.array([[0, 0], [0, N-1], [M-1, 0], [M-1, N-1]])
+    
+
+    # Show reference points in original, distorted image
     # plotPointsOnImage(img_d, x_d)
 
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
 
-    # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
-    img_u_shape = (M, N, 3)
+    
+    
+    # img_u_shape = (M, N, 3)
+    # cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape)
 
-    t1 = time.perf_counter()
-    cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape)
-    t2 = time.perf_counter()
-    tUndistort = t2-t1
-    print("tUndistort ", tUndistort, "s")
-
+    img_u = pointwiseUndistort(H_d_u, img_d, M, N)  
+    plt.imshow(img_u)
+    plt.show()
 
 if __name__ == "__main__":
     main()

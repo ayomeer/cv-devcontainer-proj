@@ -6,7 +6,7 @@ import cv2 as cv
 ## 1. Read images
 # Read train image
 #trainImage = cv.imread('praktika/exercises/local-features/168.png')
-trainImage = cv.imread('/app/_img/cropTop.jpg')
+trainImage = cv.imread('/app/_img/top.jpg')
 plt.figure()
 plt.imshow(trainImage, cmap='gray')
 plt.title('Image of a Box')

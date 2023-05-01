@@ -13,21 +13,22 @@ points_b = np.array(
         [
             # box wireframe
             [0, 0, 0],
-            [0.1, 0, 0],
-            [0.1, 0, 0.1],
-            [0, 0, 0.1],
-            [0, 0.1, 0],
-            [0.1, 0.1, 0],
-            [0.1, 0.1, 0.1],
-            [0, 0.1, 0.1],
+            [1, 0, 0],
+            [1, 0, 1],
+            [0, 0, 1],
+            [0, 1, 0],
+            [1, 1, 0],
+            [1, 1, 1],
+            [0, 1, 1],
             # axes representation
-            [0.1, 0, 0],
-            [0, 0.1, 0],
-            [0, 0, 0.1]
+            [0.3, 0, 0],
+            [0, 0.3, 0],
+            [0, 0, 0.3]
         ]).T
 
 # Individual scaling of the cube's axis
-points_b = (5*np.diag((1.5, 1.5, 1.5)) @ points_b)
+res = 10 # px/mm
+points_b = (res*np.diag((93, 130, 65)) @ points_b)
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 edges = [
@@ -48,7 +49,7 @@ edgecolors = [
 
 # --- Helper Functions ---------------------------------------------------- #
 
-# plot box wireframe edges
+# Plot box wireframe edges
 def plot_edges(ax, image_points: np.ndarray, edges: list, edgcolors: list = [], title: str="view"):
     #plt.ylim(3000, 0)
     #plt.xlim(0, 4000)
@@ -67,8 +68,8 @@ def plot_edges(ax, image_points: np.ndarray, edges: list, edgcolors: list = [], 
     plt.ylabel('x - axis')
     return
 
-def plotMatches(queryImage, queryPoints, mask, trainImage, trainPoints, matches):
-    matchesMask = mask.ravel().tolist()
+# Plot RANSAC matches
+def plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches):
 
     imgMatches = cv.drawMatches(
         img1=queryImage,
@@ -80,20 +81,23 @@ def plotMatches(queryImage, queryPoints, mask, trainImage, trainPoints, matches)
         matchesThickness=1,
         matchColor = None,  # (100,255,100), # draw matches in green color
         singlePointColor = None,
-        matchesMask = matchesMask,  # draw only inliers
+        matchesMask = mask.ravel().tolist(),  # draw only inliers
         flags = cv.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS,  # cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
     )
     plt.imshow(imgMatches)
     plt.title('Matches refined with homography-RANSAC')
     plt.show()
 
+# Solve sytem of eqs for docal lengths and pose
 def recoverRigidBodyMotionAndFocalLengths(H_c_b):
-    # Input
-    #   H_c_b is a homography from a planar object in b-coordinates to an image c-coordinates with the ORIGIN on the IMAGE CENTER!
-    # Output
-    #   Rotation matrix R_c_b
-    #   Translation vector t_c_cb
-    #   focal lenghts fx and fy
+    """
+    Input
+      H_c_b is a homography from a planar object in b-coordinates to an image c-coordinates with the ORIGIN on the IMAGE CENTER!
+    Output
+      Rotation matrix R_c_b
+      Translation vector t_c_cb
+      focal lenghts fx and fy
+    """
     H = H_c_b
     A = np.array([  [H[0,0]**2,     H[1,0]**2,     H[2,0]**2    ],
                     [H[0,1]**2,     H[1,1]**2,     H[2,1]**2    ],
@@ -103,7 +107,7 @@ def recoverRigidBodyMotionAndFocalLengths(H_c_b):
 
     # Solve sytem for focal lengths
     x = np.linalg.inv(A) @ y                # x = [a**2, b**2, c**2].T
-    LambdaInv = np.diag(np.sqrt(x.ravel())) # LabdaInv = lambda/fx etc
+    LambdaInv = np.diag(np.sqrt(x.ravel())) # LabdaInv = diag(lambda/fx lambda/fx lambda)**2
     E_ = LambdaInv @ H_c_b
 
     # Rearrange E_ into R_c_b and t_c_cb
@@ -118,14 +122,75 @@ def recoverRigidBodyMotionAndFocalLengths(H_c_b):
     fy = LambdaInv[2, 2] / LambdaInv[1, 1]
     return R_c_b, t_c_cb, fx, fy
 
+def hom2inhom(xhom):
+    return xhom[0:2]/xhom[2]
+
+def inhom2hom(x):
+    xhom = np.ones(3)
+    xhom[0:2] = x
+    return xhom
+
+# solve system of equations to find H_d_u
+def homographyFromNPointCorrespondences(x_d: np.ndarray, x_u: np.ndarray, N) -> np.ndarray:
+
+    A = np.zeros((8,8))
+    y = np.zeros(8)
+
+    for n in range(N): # for each reference point generate two lines of the EqSys
+        xu = x_u[n][0]; yu = x_u[n][1]
+        xd = x_d[n][0]; yd = x_d[n][1]
+                       
+        x_idx = 2*n
+        y_idx = 2*n + 1
+                       
+        A[x_idx] = np.array([xu, yu, 1, 0 , 0 , 0, -xd*xu, -xd*yu])
+        A[y_idx] = np.array([0 , 0 , 0, xu, yu, 1, -yd*xu, -yd*yu])
+        
+        y[x_idx] = xd
+        y[y_idx] = yd
+        
+    h_coefs = np.linalg.solve(A, y)
+    H_d_u = np.append(h_coefs, [1]).reshape((3,3))
+    return H_d_u
+
+def pointwiseUndistort(H_d_u, img_d, M, N):
+    img_u = np.empty((M,N,3), np.uint8)
+    for m in range(M):
+        for n in range(N):
+            # Change to hom. coords, do transform, go back to inhom coords
+            xu = np.array([m, n])
+            xu_hom = inhom2hom(xu)
+            
+            xd_hom = H_d_u@xu_hom # hom. transform
+            
+            xd = hom2inhom(xd_hom)
+            xd = np.round(xd).astype(int) # get integer coords
+            
+            # Use transformed coords to get pixel value
+            if (xd[0]<img_d.shape[0] and xd[1]<img_d.shape[1]):
+                img_u[m][n] = img_d[xd[0], xd[1], :] # last dimensions: rgb channels  
+    return img_u
+
+def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
+    plt.figure()
+    plt.imshow(img)
+    for point in points:
+        plt.plot(point[1], point[0], 'o')
+    plt.title("image with points at specified coordinates")
+    plt.xlabel("coordinate 1")
+    plt.ylabel("coordinate 0")
+    plt.show(block=False)
+
+
 
 # --- Main -----------------------------------------------------------------#
 def main():
-    #%% Reading images
+    #%% -- Read images --
+    trainImage = plt.imread('/app/_img/top.jpg')
     queryImage = plt.imread('/app/_img/perspective.jpg')
-    trainImage = plt.imread('/app/_img/cropTop.jpg')
 
-    #%% Feature Detection: SIFT
+
+    #%% -- Feature Detection: SIFT --
     sift = cv.SIFT_create(
         nfeatures=3000,
         contrastThreshold=0.001,
@@ -134,51 +199,44 @@ def main():
         nOctaveLayers=4
     )
     # Run SIFT detection on both images
-    trainPoints = sift.detect(trainImage, None)
-    queryPoints = sift.detect(queryImage, None)
+    trainPoints, trainDescriptors = sift.detectAndCompute(trainImage, None)
+    queryPoints, queryDescriptors = sift.detectAndCompute(queryImage, None)
 
-    # Compute descriptors
-    _, trainDescriptors = sift.compute(trainImage, trainPoints)
-    _, queryDescriptors = sift.compute(queryImage, queryPoints)
-
-    #%% Feature Matching: Brute Force Matcher (cv.bfmatcher)
+    #%% -- Feature Matching: Brute Force Matcher --
     matcher = cv.BFMatcher_create(cv.NORM_L1, crossCheck=True)
     matches = matcher.match(queryDescriptors, trainDescriptors)
+ 
+
     print('{} matches found'.format(len(matches)))
 
     # Show matches, starting with the most reliable
-    sortedMatches = sorted(matches, key = lambda x:x.distance)
-    pltImage = cv.drawMatches(queryImage, queryPoints, trainImage, trainPoints, sortedMatches[:400], queryImage, flags=2)
-    plt.imshow(pltImage)
-    plt.title('Brute force matching result')
-    plt.show()
+    # sortedMatches = sorted(matches, key = lambda x:x.distance)
+    # pltImage = cv.drawMatches(trainImage, queryPoints, queryImage, trainPoints, sortedMatches[:400], trainImage, flags=2)
+    # plt.imshow(pltImage)
+    # plt.title('Brute force matching result')
+    # plt.show()
 
-    #%% Fit the homography model: RANSAC 
-    dstPtsCoords = np.float32([queryPoints[m.queryIdx].pt for m in matches]).reshape(-1,2)
-    srcPtsCoords = np.float32([trainPoints[m.trainIdx].pt for m in matches]).reshape(-1,2)
+    #%% -- Fit the homography model: RANSAC --
+    xd = np.float32([queryPoints[m.queryIdx].pt for m in matches]).reshape(-1,2)
+    xu = np.float32([trainPoints[m.trainIdx].pt for m in matches]).reshape(-1,2)
     
     # Apply square pixel assumption to remove 2 degrees of freedom in pose estimation later on
     M = queryImage.shape[0]
     N = queryImage.shape[1]
-    srcPts_center = np.array([M/2, N/2])
+    xd_center = np.array([M/2, N/2]).astype(int)
 
-    H, mask = cv.findHomography(
-        srcPoints=srcPtsCoords,#-srcPts_center, # find homography for centered camera coords
-        dstPoints=dstPtsCoords, 
-        method=cv.RANSAC, 
-        ransacReprojThreshold=4.0)
+    cH_c_b, mask = cv.findHomography(xu, xd, method=cv.RANSAC)
 
-    # show correspondences
-    # plotMatches(queryImage, queryPoints, mask, trainImage, trainPoints, matches) 
+
+    plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches) 
 
 
 
-    #%% Pose and Focal Length Estimation
+    #%% -- Pose and Focal Length Estimation --
     """
-    
-    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-H)
-    cx = srcPts_center[0]
-    cy = srcPts_center[1]
+    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_c_b)
+    cx = xd_center[0]
+    cy = xd_center[1]
     K_c = np.array([[fx, 0, cx], 
                     [0, fy, cy], 
                     [0, 0, 1]])
@@ -199,27 +257,23 @@ def main():
     plt.show()
     """
 
-    #%% Compute box wireframe for homography input boundaries
+    #%% -- Compute box wireframe for homography input boundaries --
 
 
 
 
-    #%% Compute Homographies: custom cpp-cuda module
-    
-    img_u_shape = (600, 800, 3)
+    #%% -- Compute Homographies: custom cpp-cuda module --
 
-    t1 = time.perf_counter()
-    img_u = np.array(cpp.pointwiseUndistort(queryImage, H, img_u_shape), copy=False)
-    t2 = time.perf_counter()
-    tUndistort = t2-t1
-    print("tUndistort ", tUndistort)
-    
-    # Show result
-    plt.figure(figsize=FIGURE_SIZE)
-    plt.imshow(img_u)
-    plt.title("Undistorted Image")
+    # Test Homography: Tranform rectangle from xu-frame onto camera sensor
+    h, w, _ = trainImage.shape
+    rect_u = np.float32([ [0,0], [0,h-1], [w-1,h-1], [w-1,0] ]).reshape(-1,1,2)
+    rect_d = cv.perspectiveTransform(rect_u, cH_c_b)
+
+    img2 = cv.polylines(queryImage, [np.int32(rect_d)], True, 255 , 3, cv.LINE_AA)
+    plt.imshow(img2)
     plt.show()
-    
+
+    # cpp.pointwiseUndistort(queryImage, cH_c_b, trainImage.shape)
 
 if __name__ == "__main__":
     main()
