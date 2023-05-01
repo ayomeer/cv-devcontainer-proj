@@ -6,7 +6,7 @@ import cv2 as cv
 ## 1. Read images
 # Read train image
 #trainImage = cv.imread('praktika/exercises/local-features/168.png')
-trainImage = cv.imread('/app/_img/stapleRemover.jpg')
+trainImage = cv.imread('/app/_img/cropTop.jpg')
 plt.figure()
 plt.imshow(trainImage, cmap='gray')
 plt.title('Image of a Box')
@@ -14,7 +14,7 @@ plt.show()
 
 # Read query image
 #queryImage = cv.imread('praktika/exercises/local-features/CBL8S_on_stack.png')
-queryImage = cv.imread('/app/_img/clutteredDesk.jpg')
+queryImage = cv.imread('/app/_img/perspective.jpg')
 plt.figure()
 plt.imshow(queryImage, cmap='gray')
 plt.title('Query Image with a Cluttered Scene')
@@ -31,6 +31,7 @@ sift = cv.SIFT_create(
 )
 trainPoints = sift.detect(trainImage, None)
 queryPoints = sift.detect(queryImage, None)
+
 # Compute descriptors
 _, trainDescriptors = sift.compute(trainImage, trainPoints)
 _, queryDescriptors = sift.compute(queryImage, queryPoints)

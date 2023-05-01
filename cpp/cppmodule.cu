@@ -3,11 +3,11 @@
 #include <opencv2/core/cuda/common.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/cudev.hpp>
-//#include <pybind11/pybind11.h>
-//#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <chrono>
 
-// namespace py = pybind11;
+namespace py = pybind11;
 
 typedef std::uint8_t imgScalar;
 typedef double matScalar;
@@ -20,7 +20,7 @@ __global__ void undistortKernel
 (
     const cv::cuda::PtrStepSz<uchar3> src,
     cv::cuda::PtrStepSz<uchar3> dst,
-    float* H
+    double* H
 )
 {
     // Get dst pixel indexes for this thread from CUDA framework
@@ -40,7 +40,7 @@ __global__ void undistortKernel
     dst.ptr(i)[j] = src.ptr(xd_0)[xd_1];
 }
 
-/*
+
 Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
                         py::tuple img_u_shape ){
@@ -54,42 +54,34 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
         CV_8UC3,                        // data type
         (imgScalar*)pyImg_d.data());    // data pointer
     
-    cuda::GpuMat img_d_gpu(img_d); // create GpuMat from regular Mat
 
     // link H data to cv::Mat object
+    /*
     Mat H(
         pyH.shape(0),                   // rows
         pyH.shape(1),                   // cols
         CV_64FC1,                       // data type
         (matScalar*)pyH.data());        // data pointer
-
+    */
     int M = img_u_shape[0].cast<int>();
     int N = img_u_shape[1].cast<int>();
 
-    Mat img_u(M, N, CV_8UC3); // prepare return image
-    cuda::GpuMat img_u_gpu(img_u); // create GpuMat from regular Mat
-
     // ---  Algorithm --------------------------------------------------
-*/
-
-int main(){
-
-   // Loading H-coefs into array for passing to CUDA Kernel
-    float H[] = {3.55082e-1, 1.51274e-1, 4.8e+1, 
-                -4.27999e-1, 5.60277e-1, 3.85e+2,
-                -2.72420e-4, -1.27368e-4, 1e+0};
+    // Loading H-coefs into array for passing to CUDA Kernel
+    double* arrH = (matScalar*)pyH.data();
     
-    float* dPtr_H = 0;
-    cudaMalloc(&dPtr_H, sizeof(H));
-    cudaMemcpy(dPtr_H, H, sizeof(H), cudaMemcpyHostToDevice);
+    
+    double* dPtr_H = 0; // device pointer to copy of H on GPU
+    cudaMalloc(&dPtr_H, pyH.shape(0)*pyH.shape(1)*sizeof(double));
+    cudaMemcpy(dPtr_H, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
 
 
     // prep input image and return image  
-    Mat img = imread("/app/_img/chessboard_perspective.jpg", IMREAD_COLOR );
+    Mat img = img_d;
     cv::cuda::GpuMat src;
     
     Mat ret;
-    cv::cuda::GpuMat dst(800, 800, CV_8UC3); // allocate space 
+    cv::cuda::GpuMat dst(M, N, CV_8UC3); // allocate space for dst image
     
     // Prep Kernel Launch
     src.upload(img);
@@ -129,9 +121,9 @@ int main(){
     waitKey(0);
 
 
-    return 0;
+    return ret;
 }       
-/*
+
 PYBIND11_MODULE(cppmodule, m){
     m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
     m.doc() = "Docstring for pointwiseUndistort function";
@@ -157,4 +149,3 @@ PYBIND11_MODULE(cppmodule, m){
             })
         ;
     }
-*/

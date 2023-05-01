@@ -180,7 +180,6 @@ if __name__ == "__main__":
     x_d_centered = x_d - x_d_center
     x_u_center = np.mean(x_u, axis=0)
     cH_c_b = homographyFrom4PointCorrespondences( (x_d-x_d_center), x_u)
-    print(f"homography according to our definition A_d_u:{cH_c_b}")
 
     # Determine the pose and the focal lengths
     R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_c_b)
