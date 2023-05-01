@@ -41,7 +41,7 @@ __global__ void undistortKernel
 }
 
 
-Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
+void pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
                         py::tuple img_u_shape ){
 
@@ -77,7 +77,9 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
 
 
     // prep input image and return image  
-    Mat img = img_d;
+    Mat img;
+    cvtColor(img_d, img, COLOR_RGB2BGR);
+    
     cv::cuda::GpuMat src;
     
     Mat ret;
@@ -113,7 +115,7 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     // --------------------------------------------------------------------------
 
     // show results
-    cout << "Elapsed time in microseconds: "
+    cout << "tKernel: "
         << chrono::duration_cast<chrono::microseconds>(end - start).count()
         << " µs" << endl;
 
@@ -121,7 +123,7 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
     waitKey(0);
 
 
-    return ret;
+    return;
 }       
 
 PYBIND11_MODULE(cppmodule, m){
