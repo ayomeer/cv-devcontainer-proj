@@ -122,37 +122,6 @@ def recoverRigidBodyMotionAndFocalLengths(H_c_b):
     fy = LambdaInv[2, 2] / LambdaInv[1, 1]
     return R_c_b, t_c_cb, fx, fy
 
-def hom2inhom(xhom):
-    return xhom[0:2]/xhom[2]
-
-def inhom2hom(x):
-    xhom = np.ones(3)
-    xhom[0:2] = x
-    return xhom
-
-# solve system of equations to find H_d_u
-def homographyFromNPointCorrespondences(x_d: np.ndarray, x_u: np.ndarray, N) -> np.ndarray:
-
-    A = np.zeros((8,8))
-    y = np.zeros(8)
-
-    for n in range(N): # for each reference point generate two lines of the EqSys
-        xu = x_u[n][0]; yu = x_u[n][1]
-        xd = x_d[n][0]; yd = x_d[n][1]
-                       
-        x_idx = 2*n
-        y_idx = 2*n + 1
-                       
-        A[x_idx] = np.array([xu, yu, 1, 0 , 0 , 0, -xd*xu, -xd*yu])
-        A[y_idx] = np.array([0 , 0 , 0, xu, yu, 1, -yd*xu, -yd*yu])
-        
-        y[x_idx] = xd
-        y[y_idx] = yd
-        
-    h_coefs = np.linalg.solve(A, y)
-    H_d_u = np.append(h_coefs, [1]).reshape((3,3))
-    return H_d_u
-
 def pointwiseUndistort(H_d_u, img_d, M, N):
     img_u = np.empty((M,N,3), np.uint8)
     for m in range(M):
@@ -185,12 +154,16 @@ def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
 
 # --- Main -----------------------------------------------------------------#
 def main():
-    #%% -- Read images --
-    trainImage = plt.imread('/app/_img/top.jpg')
-    queryImage = plt.imread('/app/_img/perspective.jpg')
+    ## -- Read images --
+    trainImage = plt.imread('/app/_img/IEEE_top.jpg')
+    queryImage = plt.imread('/app/_img/IEEE_perspective.jpg')
 
+    ## Select corners to check homography fit later
+    plt.imshow(trainImage)
+    corners = np.round(plt.ginput(4)).astype(int)
+    plt.close()
 
-    #%% -- Feature Detection: SIFT --
+    ## -- Feature Detection: SIFT --
     sift = cv.SIFT_create(
         nfeatures=3000,
         contrastThreshold=0.001,
@@ -202,21 +175,21 @@ def main():
     trainPoints, trainDescriptors = sift.detectAndCompute(trainImage, None)
     queryPoints, queryDescriptors = sift.detectAndCompute(queryImage, None)
 
-    #%% -- Feature Matching: Brute Force Matcher --
+    ## -- Feature Matching: Brute Force Matcher --
     matcher = cv.BFMatcher_create(cv.NORM_L1, crossCheck=True)
     matches = matcher.match(queryDescriptors, trainDescriptors)
- 
-
     print('{} matches found'.format(len(matches)))
 
+    """
     # Show matches, starting with the most reliable
-    # sortedMatches = sorted(matches, key = lambda x:x.distance)
-    # pltImage = cv.drawMatches(trainImage, queryPoints, queryImage, trainPoints, sortedMatches[:400], trainImage, flags=2)
-    # plt.imshow(pltImage)
-    # plt.title('Brute force matching result')
-    # plt.show()
-
-    #%% -- Fit the homography model: RANSAC --
+    sortedMatches = sorted(matches, key = lambda x:x.distance)
+    pltImage = cv.drawMatches(trainImage, trainPoints, queryImage, queryPoints, sortedMatches[:400], trainImage, flags=2)
+    plt.imshow(pltImage)
+    plt.title('Brute force matching result')
+    plt.show()
+    """
+    
+    ## -- Fit the homography model: RANSAC --
     xd = np.float32([queryPoints[m.queryIdx].pt for m in matches]).reshape(-1,2)
     xu = np.float32([trainPoints[m.trainIdx].pt for m in matches]).reshape(-1,2)
     
@@ -225,16 +198,14 @@ def main():
     N = queryImage.shape[1]
     xd_center = np.array([M/2, N/2]).astype(int)
 
-    cH_c_b, mask = cv.findHomography(xu, xd, method=cv.RANSAC)
-
+    cH_c_b, mask = cv.findHomography(xu, xd, method=cv.RANSAC, ransacReprojThreshold=4.0)
 
     plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches) 
 
+    
 
-
-    #%% -- Pose and Focal Length Estimation --
-    """
-    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_c_b)
+    ## -- Pose and Focal Length Estimation --
+    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_c_b)
     cx = xd_center[0]
     cy = xd_center[1]
     K_c = np.array([[fx, 0, cx], 
@@ -254,22 +225,22 @@ def main():
     ax = plt.gca()
     plot_edges(ax, image_points, edges, title="Perspective view")
     plt.show()
-    plt.show()
-    """
-
-    #%% -- Compute box wireframe for homography input boundaries --
 
 
 
+    ## -- Compute box wireframe for homography input boundaries --
 
-    #%% -- Compute Homographies: custom cpp-cuda module --
 
+
+
+    ## -- Compute Homographies: custom cpp-cuda module --
     # Test Homography: Tranform rectangle from xu-frame onto camera sensor
     h, w, _ = trainImage.shape
-    rect_u = np.float32([ [0,0], [0,h-1], [w-1,h-1], [w-1,0] ]).reshape(-1,1,2)
+    rect_u = np.float32([ corners ]).reshape(-1,1,2)
     rect_d = cv.perspectiveTransform(rect_u, cH_c_b)
 
     img2 = cv.polylines(queryImage, [np.int32(rect_d)], True, 255 , 3, cv.LINE_AA)
+
     plt.imshow(img2)
     plt.show()
 
