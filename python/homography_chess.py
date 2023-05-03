@@ -68,28 +68,27 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
 
 def main():
     # Reading image
-    imgName = '/app/_img/perspective.jpg' 
+    imgName = '/app/_img/xonar_perspective.jpg' 
     img_d = plt.imread(imgName)
+    plt.imshow(img_d)
+    plt.show()
 
-    # plt.figure(figsize=FIGURE_SIZE)
-    # plt.imshow(img_d)
-    # plt.show(block=False)
+
 
     # Define shape undistorted image
     
  
     # 4-point corresponences chessboard_perspective
-    # M, N = 800, 800
-    # x_d = np.array([[48, 385], [188, 927], [424, 55], [665, 721]])
-    # x_u = np.array([[0, 0], [0, N-1], [M-1, 0], [M-1, N-1]])
-    
-
-    # 4-point corresponences box
-    M, N = 600, 800 
-    x_d = np.array([[163, 1605], [459, 2841], [722, 875], [1300, 2206]])
+    M, N = 800, 800
+    x_d = np.array([[48, 385], [188, 927], [424, 55], [665, 721]])
     x_u = np.array([[0, 0], [0, N-1], [M-1, 0], [M-1, N-1]])
     
 
+    # 4-point corresponences box
+    # M, N = 600, 800 
+    # x_d = np.array([[163, 1605], [459, 2841], [722, 875], [1300, 2206]])
+    # x_u = np.array([[0, 0], [0, N-1], [M-1, 0], [M-1, N-1]])
+    
     # Show reference points in original, distorted image
     # plotPointsOnImage(img_d, x_d)
 
