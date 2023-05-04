@@ -24,7 +24,8 @@ points_b = np.array(
 
 # Individual scaling of the cube's axis
 res = 2 # px/mm
-points_b = (res*np.diag((165, 240, -60)) @ points_b)
+points_b = (res*np.diag((94, 131, -65)) @ points_b) # white box
+
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 edges = [
@@ -136,8 +137,8 @@ def recoverRigidBodyMotionAndFocalLengths(H_c_b):
     # Setup System of Eqs for determining focal lengths of the camera
     H = H_c_b
     A = np.array([[H[0,0]**2,     H[1,0]**2,     H[2,0]**2],
-                   [H[0,1]**2,     H[1,1]**2,     H[2,1]**2],
-                   [H[0,0]*H[0,1], H[1,0]*H[1,1], H[2,0]*H[2,1]]])   
+                  [H[0,1]**2,     H[1,1]**2,     H[2,1]**2],
+                  [H[0,0]*H[0,1], H[1,0]*H[1,1], H[2,0]*H[2,1]]])   
     y = np.array([[1], [1], [0]])
 
     # Solve sytem for focal lengths
@@ -158,18 +159,18 @@ if __name__ == "__main__":
 
     FIGURE_SIZE = (12, 9)
     # Bilder einlesen
-    imgName = '/app/_img/xonar_perspective.jpg'
+    imgName = '/app/_img/perspective_ar.jpg'
     img_d = plt.imread(imgName)
     
     # 4-point correspondences white box 
-    # m, n = res*94, res*131 # px/mm * mm
-    # x_d = np.array([[164, 958], [491, 2206], [1295, 1570], [723, 240]])
-    # x_u = np.array([[0, 0], [0, n-1], [m-1, n-1], [m-1, 0]])
+    m, n = res*94, res*131 # px/mm * mm
+    x_d = np.array([[164, 958], [491, 2206], [1295, 1570], [723, 240]])
+    x_u = np.array([[0, 0], [0, n-1], [m-1, n-1], [m-1, 0]])
 
     # 4-point xonar box
-    m, n = res*165, res*240 
-    x_d = np.array([[760, 977], [215, 2117], [583, 2845], [1352, 1674]])
-    x_u = np.array([[0, 0], [0, n-1], [m-1, n-1], [m-1, 0]])
+    # m, n = res*165, res*240 
+    # x_d = np.array([[760, 977], [215, 2117], [583, 2845], [1352, 1674]])
+    # x_u = np.array([[0, 0], [0, n-1], [m-1, n-1], [m-1, 0]])
 
     # plotPointsOnImage(img_d, x_d)
 

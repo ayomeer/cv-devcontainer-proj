@@ -26,9 +26,9 @@ points_b = np.array(
             [0, 0, 0.3]
         ]).T
 
-# Individual scaling of the cube's axis
+# Individual scaling of the cube's axes
 res = 2 # px/mm
-points_b = (res*np.diag((165, 240, 60)) @ points_b)
+points_b = (res*np.diag((165, 240, -60)) @ points_b)
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 edges = [
@@ -48,6 +48,17 @@ edgecolors = [
 
 
 # --- Helper Functions ---------------------------------------------------- #
+
+def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
+    plt.figure()
+    plt.imshow(img)
+    for i, point in enumerate(points):
+        plt.plot(point[1], point[0], 'o', label='p{}'.format(i))
+    plt.title("image with points at specified coordinates")
+    plt.xlabel("coordinate 1")
+    plt.ylabel("coordinate 0")
+    plt.legend()
+    plt.show()
 
 def plotPointsOnImageCV(img: np.ndarray, points: np.ndarray):
     plt.figure()
@@ -191,8 +202,45 @@ def homographyFrom4PointCorrespondences(x_d: np.ndarray, x_u: np.ndarray) -> np.
 def switchCoords(points):
     return np.array([p[::-1] for p in points])
 
+
+def getAbc2(H):
+    A = np.array([  [H[0,0]**2,     H[1,0]**2,     H[2,0]**2    ],
+                    [H[0,1]**2,     H[1,1]**2,     H[2,1]**2    ],
+                    [H[0,0]*H[0,1], H[1,0]*H[1,1], H[2,0]*H[2,1]]])
+    
+    y = np.array([[1], [1], [0]])
+
+    # Solve sytem for focal lengths
+    x = np.linalg.inv(A) @ y
+    x = x.reshape(3,)  
+    return np.array([x[0], x[1], x[2]])
+
+def genAbcNeighborhoods(xd, xu, N):
+
+    R = N//2 # neighborhood radius    
+    abc2 = np.empty((4,N,N,3)) # points, x-dim window, y-dim window, abc
+    
+    for k in range(4):
+        for i in range(N):
+            for j in range(N):
+                deltaX = np.zeros((4,2))
+                windowX = np.array([i-R,j-R])
+                deltaX[k] += windowX
+                
+                xd_ = xd + deltaX 
+
+                H = homographyFrom4PointCorrespondences(xd_, xu)
+                abc2[k,i,j,:] = getAbc2(H)
+                # x, y = windowX[0], windowX[1]
+                # abc2[k,i,j,:] = np.array([x+y, x-y, x*y])
+    
+    return abc2
+    
+
+
 # --- Main -----------------------------------------------------------------#
 def main():
+   
     ## -- Read images --
     trainImage = plt.imread('/app/_img/xonar_template.jpg')
     queryImage = plt.imread('/app/_img/xonar_perspective.jpg')
@@ -254,28 +302,60 @@ def main():
     M_t, N_t = trainImage.shape[0], trainImage.shape[1]
     rect_u_ = np.array([[0, 0], [0, N_t-1], [M_t-1, N_t-1], [M_t-1, 0]]) # cv coords
     rect_u = switchCoords(rect_u_)
-    rect_d = np.empty((4,2)).astype(int)
+    rect_d = np.empty((4,2), dtype=int)
 
     for i in range(rect_d.shape[0]):
         rect_d[i] = coordTransform(rect_u[i], H_c_b).astype(int)
     
-    plotPointsOnImageCV(queryImage, rect_d)
-    plt.show()
+    # plotPointsOnImageCV(queryImage, rect_d)
+    # plt.show()
     
-    ## Second Homography using 4-point correspondence to square points
+    ## Second Homography using 4-point correspondence for pose Estimation
+    
     M_u, N_u = res*165, res*240 
     x_d_ = np.array([[760, 977], [215, 2117], [583, 2845], [1352, 1674]])
-    # x_d = np.array([p[::-1] for p in rect_d]) # change to x-down-coordinates
-    x_d = x_d_
+    x_d = np.array([p[::-1] for p in rect_d]) # change to x-down-coordinates
+    # x_d = x_d_ # use cherry picked points that work
     x_u = np.array([[0, 0], [0, N_u-1], [M_u-1, N_u-1], [M_u-1, 0]])
     
     M_d, N_d = queryImage.shape[0], queryImage.shape[1] 
     x_d_center = np.array([M_d/2, N_d/2])
 
-    cH_d_u = homographyFrom4PointCorrespondences(x_d-x_d_center, x_u)
+# -- ALGORITHM TEST --------------------------------------------------------------
+
+    x_d_ = x_d-x_d_center
     
-    ## -- Pose and Focal Length Estimation --
-    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_d_u)
+    x_d_[1][1] += 2
+    
+    plotPointsOnImage(queryImage, x_d_+x_d_center)
+    
+    cH_d_u = homographyFrom4PointCorrespondences(x_d_, x_u)
+
+    #cH_d_u = homographyFrom4PointCorrespondences(x_d-x_d_center, x_u)
+    # Find valid homography for pose estimation:
+    # test = genAbcNeighborhoods(x_d-x_d_center, x_u)
+    
+    H = -cH_d_u
+    A = np.array([  [H[0,0]**2,     H[1,0]**2,     H[2,0]**2    ],
+                    [H[0,1]**2,     H[1,1]**2,     H[2,1]**2    ],
+                    [H[0,0]*H[0,1], H[1,0]*H[1,1], H[2,0]*H[2,1]]])
+    
+    y = np.array([[1], [1], [0]])
+
+    # Solve sytem for focal lengths
+    x = np.linalg.inv(A) @ y
+    
+    N = 5
+    test = genAbcNeighborhoods(x_d_, x_u, N)
+
+    masks = np.empty((4, N, N))
+    for i, _ in enumerate(test):
+        masks[i] = (test[i,:,:,0] > 0) & (test[i,:,:,1] > 0) & (test[i,:,:,2] > 0)
+    
+# --------------------------------------------------------------------------  
+    
+    # Pose and Focal Length Estimation
+    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_d_u)
 
     
     M_d, N_d = queryImage.shape[0], queryImage.shape[1]
