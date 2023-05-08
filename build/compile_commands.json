@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/app/build",
-  "command": "/usr/bin/g++ -Dcppmodule_EXPORTS -isystem /usr/local/include/opencv4 -isystem /app/cpp/pybind11/include -isystem /usr/local/include/python3.10 -g -fPIC -fvisibility=hidden -o CMakeFiles/cppmodule.dir/cppmodule.cpp.o -c /app/cpp/cppmodule.cpp",
-  "file": "/app/cpp/cppmodule.cpp"
-}
-]
