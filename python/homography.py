@@ -5,7 +5,7 @@ import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
 import cv2 as cv
 import time
 
-# --- Constants ----------------------------------------------------------- #
+# --- CONSTANTS ------------------------------------------------------------------------ #
 FIGURE_SIZE = (12, 9)
 
 # AR Wireframe
@@ -48,7 +48,7 @@ edgecolors = [
              ]
 
 
-# --- Helper Functions ---------------------------------------------------- #
+# --- HELPER FUNCTIONS ------------------------------------------------------------------ #
 
 def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
     plt.figure()
@@ -153,7 +153,7 @@ def inhom2hom(x):
     xhom[0:2] = x
     return xhom
 
-def coordTransform(xu, H_d_u):
+def homographyTransform(xu, H_d_u):
     xu_hom = inhom2hom(xu)
     xd_hom = H_d_u@xu_hom # hom. transform
     xd = hom2inhom(xd_hom).astype(int)
@@ -200,6 +200,7 @@ def homographyFrom4PointCorrespondences(x_d: np.ndarray, x_u: np.ndarray) -> np.
     H_d_u = np.append(h_coefs, [1]).reshape((3,3))
     return H_d_u
 
+# Switch (x,y) <-> (y,x)
 def switchCoords(points):
     return np.array([p[::-1] for p in points])
 
@@ -263,29 +264,14 @@ def homographyCorrection(x_d, x_u, N):
     
     return x_d
 
-# --- Main -----------------------------------------------------------------#
+# === MAIN ==================================================================================== #
 def main():
    
-    ## -- Read images --
+    ## -- Read images ----------------------------------------------------------------
     trainImage = plt.imread('/app/_img/xonar_template.jpg')
     queryImage = plt.imread('/app/_img/xonar_perspective.jpg')
-
-    ## Select corners to check homography fit later
-    # plt.imshow(trainImage) # don't adjust window size!
-    # corners = np.round(plt.ginput(n=4, mouse_add=None, timeout=0)).astype(int)
-    # plt.close()
-
-    # hardcoded top corners xonar box top (in cv-coordinates!)
-    corners = np.array([[1207,  400],
-                        [2940,  401],
-                        [2934, 1640],
-                        [1204, 1637]])
-
-    # TODO: Fit rectangle to selection!
-
-
-
-    ## -- Feature Detection: SIFT --
+    
+    ## -- Feature Detection: SIFT ------------------------------------------------------
     sift = cv.SIFT_create(
         nfeatures=3000,
         contrastThreshold=0.001,
@@ -296,7 +282,7 @@ def main():
     trainPoints, trainDescriptors = sift.detectAndCompute(trainImage, None)
     queryPoints, queryDescriptors = sift.detectAndCompute(queryImage, None)
 
-    # Feature Matching: Brute Force Matcher 
+    ## -- Feature Matching: BFMatcher ------------------------------------------------- 
     matcher = cv.BFMatcher_create(cv.NORM_L1, crossCheck=True)
     matches = matcher.match(queryDescriptors, trainDescriptors)
     print('{} matches found'.format(len(matches)))
@@ -310,33 +296,35 @@ def main():
     plt.show()
     """
     
-    # Fit the homography model: RANSAC --
     xd = np.float32([queryPoints[m.queryIdx].pt for m in matches]).reshape(-1,2)
     xu = np.float32([trainPoints[m.trainIdx].pt for m in matches]).reshape(-1,2)
     
+    
+    ## -- Fit homography using top face reference and RANSAC ---------------------------
     H_c_b, mask = cv.findHomography(xu, xd, method=cv.RANSAC, ransacReprojThreshold=4.0)
 
     # plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches) 
 
-    ## Transform x_u-corners back to queryImage
-    """ cv.perspectiveTransform
-    rect_u = np.float32([ corners ]).reshape(-1,1,2)
-    rect_d = cv.perspectiveTransform(rect_u, H_c_b)
-    img2 = cv.polylines(queryImage, [np.int32(rect_d)], True, 255 , 3, cv.LINE_AA)
-    """
+    ## -- Estimate Pose from homography ------------------------------------------------
+    # Homography found using RANSAC is not guaranteed to be valid for pose estimation.
+    # To correct the homography, we switch to a 4-point-correspondence model, so that
+    # there are fewer variables to tweak.
+    
+    # -- Find 4 correspondence points in query image --
     M_t, N_t = trainImage.shape[0], trainImage.shape[1]
-    rect_u_ = np.array([[0, 0], [0, N_t-1], [M_t-1, N_t-1], [M_t-1, 0]]) # cv coords
-    rect_u = switchCoords(rect_u_)
+    rect_u_ = np.array([[0, 0], [0, N_t-1], [M_t-1, N_t-1], [M_t-1, 0]]) 
+    rect_u = switchCoords(rect_u_) # switch to openCV coord system, since homographyy H_c_b was found by openCV function cv.findHomography
     rect_d = np.empty((4,2), dtype=int)
 
+    # Transform each corner of the reference image back into the query image using homography
     for i in range(rect_d.shape[0]):
-        rect_d[i] = coordTransform(rect_u[i], H_c_b).astype(int)
+        rect_d[i] = homographyTransform(rect_u[i], H_c_b).astype(int)
     
+    # Check transform result 
     # plotPointsOnImageCV(queryImage, rect_d)
     # plt.show()
     
-    ## Second Homography using 4-point correspondence for pose Estimation
-    
+    # homography from 4 point correspondence
     M_u, N_u = res*165, res*240 
     x_d = np.array([p[::-1] for p in rect_d]) # change to x-down-coordinates
     x_u = np.array([[0, 0], [0, N_u-1], [M_u-1, N_u-1], [M_u-1, 0]])
@@ -345,36 +333,15 @@ def main():
     x_d_center = np.array([M_d/2, N_d/2])
     cx_d = x_d-x_d_center
 
+    # Tweak correspondence points in query Image that are valid for pose estimation
     x_d_corrected = homographyCorrection(cx_d, x_u, 10)
     
-    # -- Find Homography with corrected Point --
-    
-    
-    # plotPointsOnImage(queryImage, x_d_+x_d_center)
-    
+    # Recompute homography from tweaked 4 point correspondence
     cH_d_u = homographyFrom4PointCorrespondences(x_d_corrected, x_u)
-
-    #cH_d_u = homographyFrom4PointCorrespondences(x_d-x_d_center, x_u)
-    # Find valid homography for pose estimation:
-    # focalParams = genAbcNeighborhoods(x_d-x_d_center, x_u)
     
-    H = -cH_d_u
-    A = np.array([  [H[0,0]**2,     H[1,0]**2,     H[2,0]**2    ],
-                    [H[0,1]**2,     H[1,1]**2,     H[2,1]**2    ],
-                    [H[0,0]*H[0,1], H[1,0]*H[1,1], H[2,0]*H[2,1]]])
-    
-    y = np.array([[1], [1], [0]])
-
-    # Solve sytem for focal lengths
-    x = np.linalg.inv(A) @ y
-    
-    print("(a,b,c).^2: \n", x)
-# --------------------------------------------------------------------------  
-    
-    # Pose and Focal Length Estimation
+    # Finally actually do the pose and focal length estimation
     R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_d_u)
 
-    
     M_d, N_d = queryImage.shape[0], queryImage.shape[1]
     cx = M_d / 2
     cy = N_d / 2
@@ -383,7 +350,6 @@ def main():
                     [0, 0, 1]])
 
     # Transform wireframe coordinates into camera coordinates
-    
     points_c = R_c_b @ points_b + t_c_cb
 
     # Project onto camera sensor
@@ -397,11 +363,6 @@ def main():
     plot_edges(ax, image_points, edges, title="Perspective view")
     plt.show()
 
-
-
-    
-    
-    
     # cpp.pointwiseUndistort(queryImage, cH_c_b, trainImage.shape)
 
 if __name__ == "__main__":
