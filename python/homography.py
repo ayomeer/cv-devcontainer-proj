@@ -28,7 +28,8 @@ points_b = np.array(
 
 # Individual scaling of the cube's axes
 res = 2 # px/mm
-points_b = (res*np.diag((165, 240, -60)) @ points_b)
+points_b = (res*np.diag((165, 240, -60)) @ points_b) # xonar box
+# points_b = (res*np.diag((30, 30, 30)) @ points_b)
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 edges = [
@@ -231,12 +232,36 @@ def genAbcNeighborhoods(xd, xu, N):
 
                 H = homographyFrom4PointCorrespondences(xd_, xu)
                 abc2[k,i,j,:] = getAbc2(H)
-                # x, y = windowX[0], windowX[1]
-                # abc2[k,i,j,:] = np.array([x+y, x-y, x*y])
-    
+                  
     return abc2
     
+def homographyCorrection(x_d, x_u, N):
+    focalParams = genAbcNeighborhoods(x_d, x_u, N)
 
+    masks = np.empty((4, N, N), dtype=bool)
+    for i, _ in enumerate(focalParams):
+        masks[i] = (focalParams[i,:,:,0] > 0) & (focalParams[i,:,:,1] > 0) & (focalParams[i,:,:,2] > 0)
+    
+    # Create data for testing how close (a, b) ~ (fx, fy) are
+    ratio = np.zeros((4, N, N))
+    for i, _ in enumerate(focalParams):
+        ratio[i] = np.abs(focalParams[i,:,:,0] / focalParams[i,:,:,1]) # |a**2-b**2| neighborhood around each point
+        
+    ratio_masked = ratio[masks] # subset array where mask == True
+    
+    # Create array of indexes to track original idx after masking
+    masked_origIdx = np.arange(ratio.size)[masks.flatten()] # Idx values of original array where mask == True
+    masked_minIdx = np.argmin(np.abs(ratio_masked-1)) # find min idx within subset array
+    
+    minIdx = masked_origIdx[masked_minIdx]
+    
+    correctedPoint = np.array(np.unravel_index(minIdx, ratio.shape))
+    correctedPoint[-2:] = correctedPoint[-2:] - N//2 # change to centered neighborhood coords 
+    print("correctedPoint: \n", correctedPoint)
+    
+    x_d[correctedPoint[0]] += correctedPoint[-2:]
+    
+    return x_d
 
 # --- Main -----------------------------------------------------------------#
 def main():
@@ -313,27 +338,25 @@ def main():
     ## Second Homography using 4-point correspondence for pose Estimation
     
     M_u, N_u = res*165, res*240 
-    x_d_ = np.array([[760, 977], [215, 2117], [583, 2845], [1352, 1674]])
     x_d = np.array([p[::-1] for p in rect_d]) # change to x-down-coordinates
-    # x_d = x_d_ # use cherry picked points that work
     x_u = np.array([[0, 0], [0, N_u-1], [M_u-1, N_u-1], [M_u-1, 0]])
     
     M_d, N_d = queryImage.shape[0], queryImage.shape[1] 
     x_d_center = np.array([M_d/2, N_d/2])
+    cx_d = x_d-x_d_center
 
-# -- ALGORITHM TEST --------------------------------------------------------------
-
-    x_d_ = x_d-x_d_center
+    x_d_corrected = homographyCorrection(cx_d, x_u, 10)
     
-    x_d_[1][1] += 2
+    # -- Find Homography with corrected Point --
     
-    plotPointsOnImage(queryImage, x_d_+x_d_center)
     
-    cH_d_u = homographyFrom4PointCorrespondences(x_d_, x_u)
+    # plotPointsOnImage(queryImage, x_d_+x_d_center)
+    
+    cH_d_u = homographyFrom4PointCorrespondences(x_d_corrected, x_u)
 
     #cH_d_u = homographyFrom4PointCorrespondences(x_d-x_d_center, x_u)
     # Find valid homography for pose estimation:
-    # test = genAbcNeighborhoods(x_d-x_d_center, x_u)
+    # focalParams = genAbcNeighborhoods(x_d-x_d_center, x_u)
     
     H = -cH_d_u
     A = np.array([  [H[0,0]**2,     H[1,0]**2,     H[2,0]**2    ],
@@ -345,13 +368,7 @@ def main():
     # Solve sytem for focal lengths
     x = np.linalg.inv(A) @ y
     
-    N = 5
-    test = genAbcNeighborhoods(x_d_, x_u, N)
-
-    masks = np.empty((4, N, N))
-    for i, _ in enumerate(test):
-        masks[i] = (test[i,:,:,0] > 0) & (test[i,:,:,1] > 0) & (test[i,:,:,2] > 0)
-    
+    print("(a,b,c).^2: \n", x)
 # --------------------------------------------------------------------------  
     
     # Pose and Focal Length Estimation
