@@ -33,10 +33,10 @@ points_b = (res*np.diag((165, 240, -60)) @ points_b) # xonar box
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 edges = [
-         [4, 5], [5, 6], [6, 7], [7, 4],  # Lines of back plane
-         [0, 4], [1, 5], [2, 6], [3, 7], # Lines connecting front with back-plane
-         [0, 1], [1, 2], [2, 3], [3, 0],  # Lines of front plane
-         [0, 8], [0, 9], [0, 10],  # Lines indicating the coordinate frame
+         [4, 5], [5, 6], [6, 7], [7, 4],    # Lines of back plane
+         [0, 4], [1, 5], [2, 6], [3, 7],    # Lines connecting front with back-plane
+         [0, 1], [1, 2], [2, 3], [3, 0],    # Lines of front plane
+         [0, 8], [0, 9], [0, 10],           # Lines indicating the coordinate frame
         ]
 
 # Line colors can be given one of the strings 'r' for red, 'g' for green, 'b' for blue
@@ -44,7 +44,7 @@ edgecolors = [
                '0.8','0.8','0.8','0.8',
                '0.5','0.5','0.5','0.5',
                'k','k','k','k',
-                'r','g','b'
+                'r','g','b',
              ]
 
 
@@ -139,7 +139,7 @@ def recoverRigidBodyMotionAndFocalLengths(H_c_b):
     rz = np.cross(rx.ravel(), ry.ravel()).reshape((3,1))
     R_c_b = np.hstack((rx, ry, rz))
     t_c_cb = E_[:,[2]]
-
+    
     # Get focal lengths from LambdaInv
     fx = LambdaInv[2, 2] / LambdaInv[0, 0]
     fy = LambdaInv[2, 2] / LambdaInv[1, 1]
@@ -334,21 +334,25 @@ def main():
     cx_d = x_d-x_d_center
 
     # Tweak correspondence points in query Image that are valid for pose estimation
-    x_d_corrected = homographyCorrection(cx_d, x_u, 10)
+    cx_d_corrected = homographyCorrection(cx_d, x_u, 10)
     
     # Recompute homography from tweaked 4 point correspondence
-    cH_d_u = homographyFrom4PointCorrespondences(x_d_corrected, x_u)
+    cH_d_u = homographyFrom4PointCorrespondences(cx_d_corrected, x_u)
     
-    # Finally actually do the pose and focal length estimation
+    # Finally actually do the pose and focal length estimation 
+    # (sign flip to match negative z component as a result of numpy based coords)
     R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_d_u)
 
-    M_d, N_d = queryImage.shape[0], queryImage.shape[1]
+    print("t_c_cb: \n", t_c_cb)
+
+    # Create camera intrinsics matrix
     cx = M_d / 2
     cy = N_d / 2
     K_c = np.array([[fx, 0, cx], 
                     [0, fy, cy], 
                     [0, 0, 1]])
 
+ 
     # Transform wireframe coordinates into camera coordinates
     points_c = R_c_b @ points_b + t_c_cb
 
@@ -360,10 +364,33 @@ def main():
     plt.imshow(queryImage)
     plt.title("Undestorted Image")
     ax = plt.gca()
-    plot_edges(ax, image_points, edges, title="Perspective view")
-    plt.show()
+    plot_edges(ax, image_points, edges, title="AR Wireframe")
+    plt.show(block=False)
 
-    # cpp.pointwiseUndistort(queryImage, cH_c_b, trainImage.shape)
+    ## -- Alter wireframe pose ----------------------------------------------------
+    rx_ = np.array([1,0,0]).reshape((3,1))
+    ry_ = np.array([0,1,0]).reshape((3,1))
+    rz_ = np.array([0,0,1]).reshape((3,1))
+    R_c_b_ = np.hstack((rx_, ry_, rz_))
+
+    # t_c_cb_ = np.array([]).reshape((3,1))
+
+    # Transform wireframe coordinates into camera coordinates
+    points_c = R_c_b_ @ points_b + t_c_cb
+
+    # Project onto camera sensor
+    image_points_homogeneous = (K_c @ points_c)
+    image_points = image_points_homogeneous[:2, :] / image_points_homogeneous[2, :]
+
+    # Plot altered wireframe
+    fig, ax = plt.subplots()
+    plot_edges(ax, image_points, edges, title="Altered Wireframe")
+    plt.show(block=True)
+
+    dummy = 1
+
+
+    # cpp.pointwiseUndistort(queryImage, cH_d_u, trainImage.shape)
 
 if __name__ == "__main__":
     main()
