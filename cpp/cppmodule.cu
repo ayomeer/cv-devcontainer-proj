@@ -43,7 +43,9 @@ __global__ void undistortKernel
 
 void pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
                         py::array_t<matScalar>& pyH, 
-                        py::tuple img_u_shape ){
+                        py::tuple img_u_shape 
+)
+{
 
     // --- Input data preparation --------------------------------------
      
@@ -131,7 +133,7 @@ PYBIND11_MODULE(cppmodule, m){
     m.doc() = "Docstring for pointwiseUndistort function";
 
     py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
-        .def_buffer([](cv::Mat &im) -> py::buffer_info {
+        .def_buffer([](cv::Mat &im) -> py::buffer_info { // for returning cvMat as pyBuffer
                 return py::buffer_info(
                     im.data,                                            // pointer to data
                     sizeof(unsigned char),                              // item size

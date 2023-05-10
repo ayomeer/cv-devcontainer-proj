@@ -11,15 +11,15 @@ FIGURE_SIZE = (12, 9)
 # AR Wireframe
 points_b = np.array(
         [
-            # box wireframe
-            [0, 0, 0],
-            [1, 0, 0],
-            [1, 0, 1],
-            [0, 0, 1],
-            [0, 1, 0],
-            [1, 1, 0],
-            [1, 1, 1],
-            [0, 1, 1],
+            # qube wireframe
+            [0, 0, 0], # 0: A[0,0]
+            [1, 0, 0], # 1: A[1,0]
+            [1, 0, 1], # 2: F[1,0]
+            [0, 0, 1], # 3: F[0,0]
+            [0, 1, 0], # 4: A[0,1]
+            [1, 1, 0], # 5: A[1,1]
+            [1, 1, 1], # 6: F[1,1]
+            [0, 1, 1], # 7: F[0,1]
             # axes representation
             [0.3, 0, 0],
             [0, 0.3, 0],
@@ -28,23 +28,32 @@ points_b = np.array(
 
 # Individual scaling of the cube's axes
 res = 2 # px/mm
-points_b = (res*np.diag((165, 240, -60)) @ points_b) # xonar box
+points_b = (res*np.diag((165, 240, 60)) @ points_b) # xonar box
 # points_b = (res*np.diag((30, 30, 30)) @ points_b)
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
+
+"""
 edges = [
-         [4, 5], [5, 6], [6, 7], [7, 4],    # Lines of back plane
-         [0, 4], [1, 5], [2, 6], [3, 7],    # Lines connecting front with back-plane
-         [0, 1], [1, 2], [2, 3], [3, 0],    # Lines of front plane
-         [0, 8], [0, 9], [0, 10],           # Lines indicating the coordinate frame
+         [4, 5], [5, 6], [6, 7], [7, 4],    # Edges right plane
+         [0, 4], [1, 5], [2, 6], [3, 7],    # Edges connecting left w/ right
+         [0, 1], [1, 2], [2, 3], [3, 0],    # Edges left plane
+         [0, 8], [0, 9], [0, 10],           # Edges indicating the coordinate frame
+        ]
+"""
+edges = [
+         [0, 1], [0, 4], [4, 5], [1, 5],    # A
+         [3, 7], [3, 2], [7, 6], [2, 6],    # F
+         [0, 3], [4, 7], [5, 6], [1, 2],    # corder edges
+         [0, 8], [0, 9], [0, 10],           # Edges indicating the coordinate frame
         ]
 
 # Line colors can be given one of the strings 'r' for red, 'g' for green, 'b' for blue
 edgecolors = [
-               '0.8','0.8','0.8','0.8',
-               '0.5','0.5','0.5','0.5',
-               'k','k','k','k',
-                'r','g','b',
+               '1.0','1.0','1.0','1.0', # front face
+               '0.5','0.5','0.5','0.5', # sides
+               '0.2','0.2','0.2','0.2', # back face
+                'r','g','b',            # coord frame
              ]
 
 
@@ -258,14 +267,14 @@ def homographyCorrection(x_d, x_u, N):
     
     correctedPoint = np.array(np.unravel_index(minIdx, ratio.shape))
     correctedPoint[-2:] = correctedPoint[-2:] - N//2 # change to centered neighborhood coords 
-    print("correctedPoint: \n", correctedPoint)
+    print("correctedPoint: ", correctedPoint)
     
     x_d[correctedPoint[0]] += correctedPoint[-2:]
     
     return x_d
 
 # === MAIN ==================================================================================== #
-def main():
+if __name__ == "__main__":   
    
     ## -- Read images ----------------------------------------------------------------
     trainImage = plt.imread('/app/_img/xonar_template.jpg')
@@ -299,7 +308,7 @@ def main():
     xd = np.float32([queryPoints[m.queryIdx].pt for m in matches]).reshape(-1,2)
     xu = np.float32([trainPoints[m.trainIdx].pt for m in matches]).reshape(-1,2)
     
-    
+
     ## -- Fit homography using top face reference and RANSAC ---------------------------
     H_c_b, mask = cv.findHomography(xu, xd, method=cv.RANSAC, ransacReprojThreshold=4.0)
 
@@ -341,11 +350,11 @@ def main():
     
     # Finally actually do the pose and focal length estimation 
     # (sign flip to match negative z component as a result of numpy based coords)
-    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(-cH_d_u)
-
-    print("t_c_cb: \n", t_c_cb)
+    R_c_b, t_c_cb, fx, fy = recoverRigidBodyMotionAndFocalLengths(cH_d_u)
+  
 
     # Create camera intrinsics matrix
+    # Note: inclusion of cx, cy brings back coordinate offset
     cx = M_d / 2
     cy = N_d / 2
     K_c = np.array([[fx, 0, cx], 
@@ -354,46 +363,70 @@ def main():
 
  
     # Transform wireframe coordinates into camera coordinates
-    points_c = R_c_b @ points_b + t_c_cb
+    points_c_query = R_c_b @ points_b + t_c_cb
 
     # Project onto camera sensor
-    image_points_homogeneous = (K_c @ points_c)
-    image_points = image_points_homogeneous[:2, :] / image_points_homogeneous[2, :]
+    x_query_hom = (K_c @ points_c_query)
+    x_query = x_query_hom[:2, :] / x_query_hom[2, :]
 
     # View the image and the wireframe overlay
     plt.imshow(queryImage)
     plt.title("Undestorted Image")
     ax = plt.gca()
-    plot_edges(ax, image_points, edges, title="AR Wireframe")
+    plot_edges(ax, x_query, edges, title="AR Wireframe")
     plt.show(block=False)
 
     ## -- Alter wireframe pose ----------------------------------------------------
-    rx_ = np.array([1,0,0]).reshape((3,1))
-    ry_ = np.array([0,1,0]).reshape((3,1))
-    rz_ = np.array([0,0,1]).reshape((3,1))
-    R_c_b_ = np.hstack((rx_, ry_, rz_))
+    # rx_ = np.array([1,0,0]).reshape((3,1))
+    # ry_ = np.array([0,1,0]).reshape((3,1))
+    # rz_ = np.array([0,0,1]).reshape((3,1))
+    # R_c_b_ = np.hstack((rx_, ry_, rz_))
 
-    # t_c_cb_ = np.array([]).reshape((3,1))
+    # t_ = np.array([0, 0, 983]).reshape(3,1)
+    # t_c_cb = t_
 
-    # Transform wireframe coordinates into camera coordinates
-    points_c = R_c_b_ @ points_b + t_c_cb
+    phi = np.deg2rad(-30)
+    R_z = np.array([[np.cos(phi), -np.sin(phi), 0],
+                    [np.sin(phi),  np.cos(phi), 0],
+                    [0,            0,           1]])
 
-    # Project onto camera sensor
-    image_points_homogeneous = (K_c @ points_c)
-    image_points = image_points_homogeneous[:2, :] / image_points_homogeneous[2, :]
+    
+    # Transform wireframe coordinates into camera coordinates   
+    points_c_output = t_c_cb + R_c_b @ R_z @ points_b # wireframe points in outputImage
+
+    # Project onto camera sensor and switch to inhom. coords
+    x_output_hom = (K_c @ points_c_output)
+    x_output = x_output_hom[:2, :] / x_output_hom[2, :]    
 
     # Plot altered wireframe
     fig, ax = plt.subplots()
-    plot_edges(ax, image_points, edges, title="Altered Wireframe")
-    plt.show(block=True)
+    outputImage = np.zeros((queryImage.shape))
+    plt.imshow(outputImage)
+    ax = plt.gca()
+    plot_edges(ax, x_output, edges, title="Altered Wireframe")
+    plt.show(block=False)
+
+    polyPts_cv = switchCoords(x_output.T[[0,4,5,1],:].astype(np.int32))
+
+    t_start = time.perf_counter()
+    cv.fillPoly(outputImage, [polyPts_cv], (255,0,0))
+    t_stop = time.perf_counter()
+
+    print("fillPoly time: ", t_stop-t_start, "seconds")
+
+    plt.imshow(outputImage)
+    plt.show(block=False)
+    ## -- Compute new homographies queryImage -> outputImage
+
+    H_A = homographyFrom4PointCorrespondences(x_query.T, x_output.T) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
 
     dummy = 1
 
+    
+    # cpp.pointwiseUndistort(queryImage, H_A, trainImage.shape)
 
-    # cpp.pointwiseUndistort(queryImage, cH_d_u, trainImage.shape)
 
-if __name__ == "__main__":
-    main()
+
 
 
 
