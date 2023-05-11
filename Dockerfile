@@ -1,7 +1,6 @@
 FROM nvidia/cuda:12.0.1-devel-ubuntu22.04
 WORKDIR /app
 
-
 # no prompts during ubuntu setup
 ENV DEBIAN_FRONTEND=noninteractive 
 

@@ -406,13 +406,7 @@ if __name__ == "__main__":
     plot_edges(ax, x_output, edges, title="Altered Wireframe")
     plt.show(block=False)
 
-    polyPts_cv = switchCoords(x_output.T[[0,4,5,1],:].astype(np.int32))
-
-    t_start = time.perf_counter()
-    cv.fillPoly(outputImage, [polyPts_cv], (255,0,0))
-    t_stop = time.perf_counter()
-
-    print("fillPoly time: ", t_stop-t_start, "seconds")
+    
 
     plt.imshow(outputImage)
     plt.show(block=False)
@@ -421,9 +415,11 @@ if __name__ == "__main__":
     H_A = homographyFrom4PointCorrespondences(x_query.T, x_output.T) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
 
     dummy = 1
-
+    plt.show(block=True)
+    # contour.shape =!= (8,2), in cv-coords: y -> down
     
-    # cpp.pointwiseUndistort(queryImage, H_A, trainImage.shape)
+    polyPts_cv = switchCoords(x_output.T[[0,4,5,1],:].astype(np.int32))
+    cpp.pointwiseUndistort(queryImage, H_A, queryImage.shape, polyPts_cv)
 
 
 
