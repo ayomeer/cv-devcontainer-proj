@@ -18,46 +18,107 @@ using namespace cv;
 
 
 // === Interface Class ======================================================================
-
-class CppHomography {
+// Desc: Manages and runs homographies from queryImage to outputImage
+class HomographyReconstruction {
 public:
-    CppHomography() {}
-    void setMember(int newVal) { memberVar = newVal; }
-    int getMember() { return memberVar; }
+    HomographyReconstruction(py::array_t<imgScalar>& py_queryImage);
+    ~HomographyReconstruction();
 
-    int publicVar;
+    cv::Mat getQueryImage(); // return gets changed to py::buffer_protocol
 
-    void pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
-                        py::array_t<matScalar>& pyH, 
-                        py::tuple img_u_shape,
-                        py::array_t<float> pyContour);
+    // kernel launch function
+    cv::Mat pointwiseTransform(
+        py::array_t<matScalar>& pyH,
+        const py::array_t<int>& py_polyPts,
+        const py::array_t<int>& py_polyNrm);
+
+    __device__ __host__ int pointInPoly(
+        const int* pt,
+        const int* polyPts
+    );
+    int py_pointInPoly( // Python Wrapper for pointInPoly for testing (unit test)
+        const py::array_t<int>& py_polyPts,
+        const py::array_t<int>& py_polyNrm);
 
 private:
-    int memberVar;
-
+    cv::Mat queryImage;
+    double* d_ptrH;
 };
 
+HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_queryImage){
+    // Link py_queryImage data to cv::Mat object queryImage, member of HomographyReconstruction class
+    queryImage = Mat(
+        py_queryImage.shape(0),               // rows
+        py_queryImage.shape(1),               // cols
+        CV_8UC3,                              // data type
+        (imgScalar*)py_queryImage.data());    // data pointer
 
-
-
-// === Cuda device code (Kernel) ============================================================
-__device__ void deviceFcn() {
+    cvtColor(queryImage, queryImage, COLOR_RGB2BGR); // change color interpretation to openCV's
+    
+    // Allocate space on device for H-matrices and create pointer to them
+    double* d_ptrH = 0; // device pointer to copy of H on GPU
+    cudaMalloc(&d_ptrH, (3*3)*sizeof(double));
 
 }
 
-__global__ void undistortKernel
+HomographyReconstruction::~HomographyReconstruction(){
+    cudaFree(d_ptrH);
+}
+
+cv::Mat HomographyReconstruction::getQueryImage(){
+    return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
+}
+
+
+// === Cuda device code (Kernel) ============================================================
+
+
+int HomographyReconstruction::py_pointInPoly(
+    const py::array_t<int>& py_pt, 
+    const py::array_t<int>& py_polyPts
+){
+    // py types to C-types
+    const int* pt = py_pt.data();
+    const int* polyPts = py_polyPts.data();
+
+
+    return pointInPoly(pt, polyPts);
+}
+
+int HomographyReconstruction::pointInPoly(
+    const int* pt,
+    const int* polyPts
+){
+    int pVect[4][2] = {0};
+    for (std::size_t i = 0; i < 4; ++i){
+        // x coord
+        int x_idx = i*2; 
+        int y_idx = i*2+1; 
+        pVect[i][0] = pt[0] - polyPts[x_idx];
+        pVect[i][1] = pt[1] - polyPts[y_idx];
+    }
+ 
+    return pVect[1][0];
+}
+
+__global__ void transformKernel
 (
-    const cv::cuda::PtrStepSz<uchar3> src,
-    cv::cuda::PtrStepSz<uchar3> dst,
+    const cv::cuda::PtrStepSz<uchar3> d_queryImage,
+    cv::cuda::PtrStepSz<uchar3> d_outputImage,
     double* H,
-    cv::InputArray c
+    const int* polyPts
 )
 {
-    // Get dst pixel indexes for this thread from CUDA framework
+    
+    // Get d_outputImage pixel indexes for this thread from CUDA framework
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-    /* // Homography Matprod
+    // Check which polygon the point (i, j) is in
+
+
+
+    /* // HomographyReconstruction Matprod
     // H*xu_hom 
     float xd_hom_0 = H[0]*i + H[1]*j + H[2];
     float xd_hom_1 = H[3]*i + H[4]*j + H[5];
@@ -67,121 +128,90 @@ __global__ void undistortKernel
     int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
     int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
 
-    // Get rgb value from src image 
-    dst.ptr(i)[j] = src.ptr(xd_0)[xd_1];
+    // Get rgb value from d_queryImage image 
+    d_outputImage.ptr(i)[j] = d_queryImage.ptr(xd_0)[xd_1];
     */
-    deviceFcn();
+
+   d_outputImage.ptr(i)[j] = d_queryImage.ptr(j)[i];
 
 }
 
 
-void CppHomography::pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
-                        py::array_t<matScalar>& pyH, 
-                        py::tuple img_u_shape,
-                        py::array_t<float> pyContour
+cv::Mat HomographyReconstruction::pointwiseTransform(
+    py::array_t<matScalar>& pyH,
+    const py::array_t<int>& py_polyPts,
+    const py::array_t<int>& py_polyNrm
 )
 {
-    // === Input data preparation ===========================================================  
-    // Link pyImg_d data to cv::Mat object img
-    Mat img_d(
-        pyImg_d.shape(0),               // rows
-        pyImg_d.shape(1),               // cols
-        CV_8UC3,                        // data type
-        (imgScalar*)pyImg_d.data());    // data pointer
-    
+    // --- Input data preparation ----------------------------------------------------------
+   
     // Link pyH data to C-array
     double* arrH = (matScalar*)pyH.data(); // or: const double* arrH = pyH.data();
 
-    // Cast py::tuple into int
-    int M = img_u_shape[0].cast<int>();
-    int N = img_u_shape[1].cast<int>();
+    // Link py_polyPts to C-array
+    const int* polyPts = py_polyPts.data();
 
-    // Link pyContour to C-array
-    //const int* arrC = pyContour.data();
-    Mat contour(
-        pyContour.shape(0),
-        pyContour.shape(1),
-        CV_32FC1,
-        (float*)pyContour.data()
-    );
-    cv::InputArray inpContour(contour);
+    // Link py_polyNrm to C-array
+    const int* polyNrm = py_polyNrm.data();
 
-    // ===  CUDA host code ==================================================================
-
-    // Load H-array onto device, so it doesn't have to be passed to each kernel individually
-    double* dPtr_H = 0; // device pointer to copy of H on GPU
-    cudaMalloc(&dPtr_H, pyH.shape(0)*pyH.shape(1)*sizeof(double));
-    cudaMemcpy(dPtr_H, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
-
-
-    // Prep input and return images
-    Mat img;
-    cvtColor(img_d, img, COLOR_RGB2BGR);
+    // --- CUDA Host Code ------------------------------------------------------------------
+    // Prepare images
+    cv::Mat outputImage;
+    cv::cuda::GpuMat d_queryImage;
     
-    cv::cuda::GpuMat src;
-    
-    Mat ret;
-    cv::cuda::GpuMat dst(M, N, CV_8UC3); // allocate space for dst image
+    auto M = queryImage.rows;
+    auto N = queryImage.cols;
+
+    cv::cuda::GpuMat d_outputImage(M, N, CV_8UC3); // allocate space for d_outputImage image
+
+
+    // Copy H-matrices onto device (the same for each kernel)
+    cudaMemcpy(d_ptrH, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
     
     // Prep kernel launch
-    src.upload(img);
+    d_queryImage.upload(queryImage);
     
     const dim3 blockSize(16,16);
-    const dim3 gridSize(cv::cudev::divUp(dst.cols, blockSize.x), 
-                        cv::cudev::divUp(dst.rows, blockSize.y)); 
+    const dim3 gridSize(cv::cudev::divUp(d_outputImage.cols, blockSize.x), 
+                        cv::cudev::divUp(d_outputImage.rows, blockSize.y)); 
 
 
-    // -- Kernel Launch 1 (slow) ------------------------------------------------------------ 
-
-    src.upload(img);
+    // Kernel Launch 1 (slow) 
+    d_queryImage.upload(queryImage);
     
-    undistortKernel<<<gridSize, blockSize>>>(src, dst, dPtr_H, inpContour);
+    transformKernel<<<gridSize, blockSize>>>(d_queryImage, d_outputImage, d_ptrH, polyPts);
     cudaDeviceSynchronize();
     
-    dst.download(ret);
-
-    // -- Kernel Launch 2 (fast) ----------------------------------------------------------- 
-    auto start = chrono::steady_clock::now();
-    src.upload(img);
-    
-    undistortKernel<<<gridSize, blockSize>>>(src, dst, dPtr_H, inpContour);
-    cudaDeviceSynchronize();
-    
-    dst.download(ret);
-    auto end = chrono::steady_clock::now();
+    d_outputImage.download(outputImage);
 
     // -------------------------------------------------------------------------------------
 
     // show results
-    cout << "tKernel: "
-        << chrono::duration_cast<chrono::microseconds>(end - start).count()
-        << " µs" << endl;
+    // imshow("outputImage image", outputImage);
+    // waitKey(0);
 
-    imshow("ret image", ret);
-    waitKey(0);
-
-
-    return;
+    return outputImage;
 }       
 
 PYBIND11_MODULE(cppmodule, m){
     m.doc() = "Docstring for cpp homography module";
-    // m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
+    // m.def("pointwiseTransform", &pointwiseTransform, py::return_value_policy::automatic);
 
-    py::class_<CppHomography>(m, "CppHomography")
-        .def(py::init()) // Wrap class constructor
-        .def("setMember", &CppHomography::setMember)
-        .def("getMember", &CppHomography::getMember)
-        .def("pointwiseUndistort", &CppHomography::pointwiseUndistort)
-        .def_readwrite("publicVar", &CppHomography::publicVar)
-        ;
+    py::class_<HomographyReconstruction>(m, "HomographyReconstruction")
+        .def(py::init<py::array_t<imgScalar>&>()) // Wrap class constructor
+        .def("pointwiseTransform", &HomographyReconstruction::pointwiseTransform)
+        .def("getQueryImage", &HomographyReconstruction::getQueryImage)
+        // examples for other class element types
+        // .def_readwrite("publicVar", &HomographyReconstruction::publicVar)
+        .def("py_pointInPoly", &HomographyReconstruction::py_pointInPoly)
+    ;
 
     
 
 
 
 
-    // Returning Mat to Python as Numpy array
+    // Returning Mat to Python as Numpy array (not currently needed)
     py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
         .def_buffer([](cv::Mat &im) -> py::buffer_info { // for returning cvMat as pyBuffer
                 return py::buffer_info(
@@ -201,6 +231,5 @@ PYBIND11_MODULE(cppmodule, m){
                     }
                 );
             })
-        ;
-        
+        ; 
 }

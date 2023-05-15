@@ -1,3 +1,4 @@
 ipython
 tk
 matplotlib
+pandas

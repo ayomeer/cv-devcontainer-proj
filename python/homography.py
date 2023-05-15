@@ -11,7 +11,7 @@ FIGURE_SIZE = (12, 9)
 # AR Wireframe
 points_b = np.array(
         [
-            # qube wireframe
+            # qube wireframe (A->top face, F-> bottom face)
             [0, 0, 0], # 0: A[0,0]
             [1, 0, 0], # 1: A[1,0]
             [1, 0, 1], # 2: F[1,0]
@@ -419,7 +419,7 @@ if __name__ == "__main__":
     # contour.shape =!= (8,2), in cv-coords: y -> down
     
     polyPts_cv = switchCoords(x_output.T[[0,4,5,1],:].astype(np.int32))
-    cpp.pointwiseUndistort(queryImage, H_A, queryImage.shape, polyPts_cv)
+    cpp.pointwiseTransform(queryImage, H_A, queryImage.shape, polyPts_cv)
 
 
 
