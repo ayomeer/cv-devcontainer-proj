@@ -70,7 +70,9 @@
         "numbers": "cpp",
         "__locale": "cpp",
         "__string": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "bitset": "cpp",
+        "__nullptr": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/cpp",
     "cmake.configureOnOpen": false,

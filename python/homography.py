@@ -1,7 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
+from lib.cppmodule import HomographyReconstruction as HomRec # path from vs code root --> cd to /app/python
 import cv2 as cv
 import time
 
@@ -273,6 +273,19 @@ def homographyCorrection(x_d, x_u, N):
     
     return x_d
 
+
+def getNorms(polyPts):
+    polyEdges = np.array([polyPts[1]-polyPts[0], 
+                          polyPts[2]-polyPts[1],
+                          polyPts[3]-polyPts[2],
+                          polyPts[0]-polyPts[3],])
+    
+    rot = np.array([[0, 1], # different rot matrix in cv-coords!
+                    [-1, 0]])
+    
+    polyNormals = ((rot@polyEdges.T).T).astype(int)
+    return polyNormals
+
 # === MAIN ==================================================================================== #
 if __name__ == "__main__":   
    
@@ -401,28 +414,30 @@ if __name__ == "__main__":
     # Plot altered wireframe
     fig, ax = plt.subplots()
     outputImage = np.zeros((queryImage.shape))
-    plt.imshow(outputImage)
+    # plt.imshow(outputImage)
     ax = plt.gca()
     plot_edges(ax, x_output, edges, title="Altered Wireframe")
-    plt.show(block=False)
+    # plt.show(block=False)
 
+    # plt.imshow(outputImage)
+    # plt.show(block=False)
     
-
-    plt.imshow(outputImage)
-    plt.show(block=False)
     ## -- Compute new homographies queryImage -> outputImage
-
     H_A = homographyFrom4PointCorrespondences(x_query.T, x_output.T) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
+    
+    faceA = x_output.T[[0,4,5,1],:].astype(np.int32)
+    polyPts_cv = switchCoords(faceA)
+    polyNrm_cv = getNorms(polyPts_cv)
+    
+    hr = HomRec(queryImage)
+    ret = np.array(hr.pointwiseTransform(H_A, polyPts_cv, polyNrm_cv), copy=False)
+    
+    plt.figure()
+    plt.imshow(ret)
+    plt.show(block=True)
+
 
     dummy = 1
-    plt.show(block=True)
-    # contour.shape =!= (8,2), in cv-coords: y -> down
-    
-    polyPts_cv = switchCoords(x_output.T[[0,4,5,1],:].astype(np.int32))
-    cpp.pointwiseTransform(queryImage, H_A, queryImage.shape, polyPts_cv)
-
-
-
 
 
 
