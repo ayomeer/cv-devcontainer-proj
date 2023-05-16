@@ -280,8 +280,8 @@ def getNorms(polyPts):
                           polyPts[3]-polyPts[2],
                           polyPts[0]-polyPts[3],])
     
-    rot = np.array([[0, 1], # different rot matrix in cv-coords!
-                    [-1, 0]])
+    rot = np.array([[0, -1], # different rot matrix in cv-coords!
+                    [1, 0]])
     
     polyNormals = ((rot@polyEdges.T).T).astype(int)
     return polyNormals
@@ -375,7 +375,7 @@ if __name__ == "__main__":
                     [0, 0, 1]])
 
  
-    # Transform wireframe coordinates into camera coordinates
+    # Transform wireframe corner coordinates into camera coordinates
     points_c_query = R_c_b @ points_b + t_c_cb
 
     # Project onto camera sensor
@@ -414,25 +414,26 @@ if __name__ == "__main__":
     # Plot altered wireframe
     fig, ax = plt.subplots()
     outputImage = np.zeros((queryImage.shape))
-    # plt.imshow(outputImage)
+    plt.imshow(outputImage)
     ax = plt.gca()
     plot_edges(ax, x_output, edges, title="Altered Wireframe")
-    # plt.show(block=False)
+    plt.show(block=False)
 
-    # plt.imshow(outputImage)
-    # plt.show(block=False)
+    plt.imshow(outputImage)
+    plt.show(block=False)
     
     ## -- Compute new homographies queryImage -> outputImage
-    H_A = homographyFrom4PointCorrespondences(x_query.T, x_output.T) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
+    x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
+    x_out_A = x_output.T[[0,1,5,4],:].astype(np.int32)
+    H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
     
-    faceA = x_output.T[[0,4,5,1],:].astype(np.int32)
-    polyPts_cv = switchCoords(faceA)
-    polyNrm_cv = getNorms(polyPts_cv)
+    
+    polyPts = x_out_A
+    polyNrm = getNorms(polyPts)
     
     hr = HomRec(queryImage)
-    ret = np.array(hr.pointwiseTransform(H_A, polyPts_cv, polyNrm_cv), copy=False)
+    ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
     
-    plt.figure()
     plt.imshow(ret)
     plt.show(block=True)
 

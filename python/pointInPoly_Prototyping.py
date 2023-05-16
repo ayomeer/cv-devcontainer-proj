@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2 as cv
-from lib.cppmodule import HomographyReconstruction as HomRec
+import lib.cppmodule as cpp
+
+def switchCoords(points):
+    return np.array([p[::-1] for p in points])
 
 def getNorms(polyPts):
     polyEdges = np.array([polyPts[1]-polyPts[0], 
@@ -9,16 +12,14 @@ def getNorms(polyPts):
                           polyPts[3]-polyPts[2],
                           polyPts[0]-polyPts[3],])
     
-    rot = np.array([[0, 1], # different rot matrix in cv-coords!
-                    [-1, 0]])
+    rot = np.array([[0, -1], # different rot matrix in cv-coords!
+                    [1, 0]])
     
-    polyNormals = ((rot@polyEdges.T).T).astype(int)
+    polyNormals = (rot@polyEdges.T).T.astype(int)
     return polyNormals
 
-def pointInPoly(p, polyPts):
-    polyNrm = getNorms(polyPts)
+def _pointInPoly(p, polyPts, polyNrm):
 
-    # -- kernel -----------------------------------------
     pVect = p - polyPts
 
     inside = True
@@ -34,25 +35,29 @@ def pointInPoly(p, polyPts):
 if __name__ == '__main__':
 
     # Create example image w/ poly
-    img = np.zeros((50,50,3))
+    img = np.zeros((1960,4032,3))
 
-    polyPts = np.array([[20, 10],[20, 40],[30,30],[30,20]]).astype(np.int64) # cv-coords
-    cv.polylines(img, [polyPts.reshape(-1,1,2)], True, (1,0,0))
+    polyPts = np.array([[ 755,  972],
+                        [1637,  981],
+                        [1273, 2958],
+                        [ 542, 2506]])
+    polyPts_cv = switchCoords(polyPts)
+    cv.polylines(img, [polyPts_cv.reshape(-1,1,2)], True, (1,0,0))
     
     # Show poly and choose point
-    # plt.imshow(img)
-    # pt = np.array(plt.ginput(1)[0]).T.astype(np.int64) # ginput returns list of tuples -> take first (and only)
-    pt = np.array([22, 15])
+    plt.imshow(img)
+    pt_cv = np.array(plt.ginput(1)[0]).T.astype(np.int64) # ginput returns list of tuples -> take first (and only)
+    pt = pt_cv[::-1]
+
     print(pt)
-    img[tuple(np.round(pt[::-1]).astype(np.int64))] = (0,1,0) # write chosen point into image
+    img[tuple(np.round(pt).astype(np.int64))] = (0,1,0) # write chosen point into image
     
     # perform check
     # print(pointInPoly(pt, polyPts))
     
     polyNrm = getNorms(polyPts).astype(np.int64)
-    obj = HomRec(img)
-    print(obj.pointInPoly(pt, polyPts.flatten(), polyNrm.flatten()))
-    # print(pointInPoly(pt, polyPts))
+    print(cpp.pointInPoly(pt, polyPts.flatten(), polyNrm.flatten()))
+    # print(_pointInPoly(pt, polyPts, polyNrm))
     
     # show poly with chosen point
     plt.imshow(img)

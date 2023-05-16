@@ -16,9 +16,6 @@ typedef double matScalar;
 using namespace std;
 using namespace cv;
 
-__constant__ int g_polyPts[8];
-__constant__ int g_polyNrm[8];
-
 // === Interface Class ======================================================================
 // Desc: Manages and runs homographies from queryImage to outputImage
 class HomographyReconstruction {
@@ -34,21 +31,16 @@ public:
         const py::array_t<int>& py_polyPts,
         const py::array_t<int>& py_polyNrm);
 
-    int pointInPoly(
-        const int* pt,
-        const int* polyPts,
-        const int* polyNrm
-    );
-    int py_pointInPoly( // Python Wrapper for pointInPoly for testing (unit test)
-        const py::array_t<int>& py_polyPts,
-        const py::array_t<int>& py_polyNrm);
-
 private:
     cv::Mat queryImage;
-    double* d_ptrH;
+    double* d_ptr_H;
+    int* d_ptr_polyPts;
+    int* d_ptr_polyNrm;
 };
 
-HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_queryImage){
+HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_queryImage)
+    : d_ptr_H(NULL), d_ptr_polyPts(NULL), d_ptr_polyNrm(NULL)
+{
     // Link py_queryImage data to cv::Mat object queryImage, member of HomographyReconstruction class
     queryImage = Mat(
         py_queryImage.shape(0),               // rows
@@ -57,15 +49,18 @@ HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_qu
         (imgScalar*)py_queryImage.data());    // data pointer
 
     cvtColor(queryImage, queryImage, COLOR_RGB2BGR); // change color interpretation to openCV's
-    
-    // Allocate space on device for H-matrices and create pointer to them
-    double* d_ptrH = 0; // device pointer to copy of H on GPU
-    cudaMalloc(&d_ptrH, (3*3)*sizeof(double));
 
+    // Allocate space on device for H-matrices and create pointer to them
+
+    cudaMalloc(&d_ptr_H, (3*3)*sizeof(double));
+    cudaMalloc(&d_ptr_polyPts, (4*2)*sizeof(int));
+    cudaMalloc(&d_ptr_polyNrm, (4*2)*sizeof(int));
 }
 
 HomographyReconstruction::~HomographyReconstruction(){
-    cudaFree(d_ptrH);
+    cudaFree(d_ptr_H);
+    cudaFree(d_ptr_polyPts);
+    cudaFree(d_ptr_polyNrm);
 }
 
 cv::Mat HomographyReconstruction::getQueryImage(){
@@ -75,22 +70,7 @@ cv::Mat HomographyReconstruction::getQueryImage(){
 
 // === Cuda device code (Kernel) ============================================================
 
-/*
-int HomographyReconstruction::py_pointInPoly(
-    const py::array_t<int>& py_pt, 
-    const py::array_t<int>& py_polyPts
-){
-    // py types to C-types
-    const int* pt = py_pt.data();
-    const int* polyPts = py_polyPts.data();
-
-
-    return pointInPoly(pt, polyPts);
-}*/
-
-
-
-__host__ __device__ int d_pointInPoly(
+__host__ __device__ int pointInPoly(
     const int* pt,
     const int* polyPts,
     const int* polyNrm
@@ -109,6 +89,7 @@ __host__ __device__ int d_pointInPoly(
     }
  
     int inside = 1;
+    
     for (int i = 0; i < 4; ++i){
         int x_idx = i*2; 
         int y_idx = i*2+1;
@@ -116,60 +97,55 @@ __host__ __device__ int d_pointInPoly(
         // printf("%d * %d + %d * %d = %d \n",  pVect[i][0], polyNrm[x_idx], pVect[i][1], polyNrm[y_idx], dotP_i);
         if (dotP_i < 0){inside = 0;}
     }
-    return inside; // 1 or 0 (int)
-}
-
-int HomographyReconstruction::pointInPoly(    
-    const int* pt,
-    const int* polyPts,
-    const int* polyNrm
-){
-    return d_pointInPoly(pt, polyPts, polyNrm);
+    return inside; 
 }
 
 __global__ void transformKernel
 (
-    const cv::cuda::PtrStepSz<uchar3> d_queryImage,
-    cv::cuda::PtrStepSz<uchar3> d_outputImage,
-    double* H//,
-    //const int* polyPts,
-    //const int* polyNrm
+    const cv::cuda::PtrStepSz<uchar3> queryImage,
+    cv::cuda::PtrStepSz<uchar3> outputImage,
+    double* H,
+    const int* polyPts,
+    const int* polyNrm
 )
 {
     // Get d_outputImage pixel indexes for this thread from CUDA framework
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int j = blockIdx.y * blockDim.y + threadIdx.y;
+    const int i = blockIdx.x * blockDim.x + threadIdx.x; // right
+    const int j = blockIdx.y * blockDim.y + threadIdx.y; // down
 
+    int pt[2] = {j, i}; //coord switch: cv --> x-down
 
-    // Check if point in polygon
-    const int pt[2] = {i, j};
+    if (pointInPoly(pt, polyPts, polyNrm)){
+        // H*xu_hom 
+        float xd_hom_0 = H[0]*j + H[1]*i + H[2];
+        float xd_hom_1 = H[3]*j + H[4]*i + H[5];
+        float xd_hom_2 = H[6]*j + H[7]*i + H[8];
 
-    if(d_pointInPoly(pt, g_polyPts, g_polyNrm) == 1){
-        // set px to red
-        d_outputImage.ptr(j)[i] = d_queryImage.ptr(200)[200];
+        // Convert to inhom and round to int for use as indexes
+        int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
+        int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
+
+        // Get rgb value from d_queryImage image 
+        outputImage.ptr(j)[i] = queryImage.ptr(xd_0)[xd_1];
+        
+        
+        
+        //outputImage.ptr(j)[i] = queryImage.ptr(j)[i]; // switched indices (cv-coords)
     }
-    else {
-        // set px to gray
-        d_outputImage.ptr(j)[i] = d_queryImage.ptr(100)[100];
-    }
-
     
-
     /* // HomographyReconstruction Matprod
-    // H*xu_hom 
-    float xd_hom_0 = H[0]*i + H[1]*j + H[2];
-    float xd_hom_1 = H[3]*i + H[4]*j + H[5];
-    float xd_hom_2 = H[6]*i + H[7]*j + H[8];
+        // H*xu_hom 
+        float xd_hom_0 = H[0]*j + H[1]*i + H[2];
+        float xd_hom_1 = H[3]*j + H[4]*i + H[5];
+        float xd_hom_2 = H[6]*j + H[7]*i + H[8];
 
-    // Convert to inhom and round to int for use as indexes
-    int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
-    int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
+        // Convert to inhom and round to int for use as indexes
+        int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
+        int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
 
-    // Get rgb value from d_queryImage image 
-    d_outputImage.ptr(i)[j] = d_queryImage.ptr(xd_0)[xd_1];
+        // Get rgb value from d_queryImage image 
+        outputImage.ptr(j)[i] = queryImage.ptr(xd_0)[xd_1];
     */
-
-   
 
 }
 
@@ -192,9 +168,6 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     // Link py_polyNrm to C-array
     const int* polyNrm = py_polyNrm.data();
 
-    const int pt[2] = {2000, 1000};
-    printf("pointInPoly: %d \n", d_pointInPoly(pt, polyPts, polyNrm));
-
     // --- CUDA Host Code ------------------------------------------------------------------
     // Prepare images
     cv::Mat outputImage;
@@ -206,12 +179,12 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     cv::cuda::GpuMat d_outputImage(M, N, CV_8UC3, cv::Scalar(0,0,0)); // allocate space for d_outputImage image
 
 
+    // --- Start of repeated code ---------------------------------------------------------
     // Copy H-matrices onto device (the same for each kernel)
-    cudaMemcpy(d_ptrH, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ptr_H, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ptr_polyPts, polyPts, 4*2*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ptr_polyNrm, polyNrm, 4*2*sizeof(int), cudaMemcpyHostToDevice);
     
-    cudaMemcpyToSymbol(g_polyPts, (void*)polyPts, 8*sizeof(int), 0);
-    cudaMemcpyToSymbol(g_polyPts, (void*)polyPts, 8*sizeof(int), 0);
-
     // Prep kernel launch
     d_queryImage.upload(queryImage);
     
@@ -223,7 +196,11 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     // Kernel Launch 1 (slow) 
     d_queryImage.upload(queryImage);
     
-    transformKernel<<<gridSize, blockSize>>>(d_queryImage, d_outputImage, d_ptrH);//, polyPts, polyNrm);
+    transformKernel<<<gridSize, blockSize>>>(d_queryImage, 
+                                             d_outputImage, 
+                                             d_ptr_H, 
+                                             d_ptr_polyPts, 
+                                             d_ptr_polyNrm);
     cudaDeviceSynchronize();
     
     d_outputImage.download(outputImage);
@@ -240,15 +217,7 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 PYBIND11_MODULE(cppmodule, m){
     m.doc() = "Docstring for cpp homography module";
     // m.def("pointwiseTransform", &pointwiseTransform, py::return_value_policy::automatic);
-
-    py::class_<HomographyReconstruction>(m, "HomographyReconstruction")
-        .def(py::init<py::array_t<imgScalar>&>()) // Wrap class constructor
-        .def("pointwiseTransform", &HomographyReconstruction::pointwiseTransform)
-        .def("getQueryImage", &HomographyReconstruction::getQueryImage)
-        // examples for other class element types
-        // .def_readwrite("publicVar", &HomographyReconstruction::publicVar)
-        .def("pointInPoly", []( // Python interface wrapper    
-                                    HomographyReconstruction& self,     
+    m.def("pointInPoly", []( // Python interface wrapper     
                                     const py::array_t<int>& py_pt, 
                                     const py::array_t<int>& py_polyPts,
                                     const py::array_t<int>& py_polyNrm
@@ -257,8 +226,15 @@ PYBIND11_MODULE(cppmodule, m){
                                     const int* polyPts = py_polyPts.data();
                                     const int* polyNrm = py_polyNrm.data();
 
-                                    return self.pointInPoly(pt, polyPts, polyNrm);
-                               })
+                                    return pointInPoly(pt, polyPts, polyNrm);
+                               });
+
+    py::class_<HomographyReconstruction>(m, "HomographyReconstruction")
+        .def(py::init<py::array_t<imgScalar>&>()) // Wrap class constructor
+        .def("pointwiseTransform", &HomographyReconstruction::pointwiseTransform)
+        .def("getQueryImage", &HomographyReconstruction::getQueryImage)
+        // examples for other class element types
+        // .def_readwrite("publicVar", &HomographyReconstruction::publicVar)
         ;
     // Returning Mat to Python as Numpy array
     py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
