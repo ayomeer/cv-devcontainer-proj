@@ -16,58 +16,6 @@ typedef double matScalar;
 using namespace std;
 using namespace cv;
 
-// === Interface Class ======================================================================
-// Desc: Manages and runs homographies from queryImage to outputImage
-class HomographyReconstruction {
-public:
-    HomographyReconstruction(py::array_t<imgScalar>& py_queryImage);
-    ~HomographyReconstruction();
-
-    cv::Mat getQueryImage(); // return gets changed to py::buffer_protocol
-
-    // kernel launch function
-    cv::Mat pointwiseTransform(
-        py::array_t<matScalar>& pyH,
-        const py::array_t<int>& py_polyPts,
-        const py::array_t<int>& py_polyNrm);
-
-private:
-    cv::Mat queryImage;
-    double* d_ptr_H;
-    int* d_ptr_polyPts;
-    int* d_ptr_polyNrm;
-};
-
-HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_queryImage)
-    : d_ptr_H(NULL), d_ptr_polyPts(NULL), d_ptr_polyNrm(NULL)
-{
-    // Link py_queryImage data to cv::Mat object queryImage, member of HomographyReconstruction class
-    queryImage = Mat(
-        py_queryImage.shape(0),               // rows
-        py_queryImage.shape(1),               // cols
-        CV_8UC3,                              // data type
-        (imgScalar*)py_queryImage.data());    // data pointer
-
-    cvtColor(queryImage, queryImage, COLOR_RGB2BGR); // change color interpretation to openCV's
-
-    // Allocate space on device for H-matrices and create pointer to them
-
-    cudaMalloc(&d_ptr_H, (3*3)*sizeof(double));
-    cudaMalloc(&d_ptr_polyPts, (4*2)*sizeof(int));
-    cudaMalloc(&d_ptr_polyNrm, (4*2)*sizeof(int));
-}
-
-HomographyReconstruction::~HomographyReconstruction(){
-    cudaFree(d_ptr_H);
-    cudaFree(d_ptr_polyPts);
-    cudaFree(d_ptr_polyNrm);
-}
-
-cv::Mat HomographyReconstruction::getQueryImage(){
-    return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
-}
-
-
 // === Cuda device code (Kernel) ============================================================
 
 __host__ __device__ int pointInPoly(
@@ -127,31 +75,62 @@ __global__ void transformKernel
 
         // Get rgb value from d_queryImage image 
         outputImage.ptr(j)[i] = queryImage.ptr(xd_0)[xd_1];
-        
-        
-        
-        //outputImage.ptr(j)[i] = queryImage.ptr(j)[i]; // switched indices (cv-coords)
     }
-    
-    /* // HomographyReconstruction Matprod
-        // H*xu_hom 
-        float xd_hom_0 = H[0]*j + H[1]*i + H[2];
-        float xd_hom_1 = H[3]*j + H[4]*i + H[5];
-        float xd_hom_2 = H[6]*j + H[7]*i + H[8];
-
-        // Convert to inhom and round to int for use as indexes
-        int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
-        int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
-
-        // Get rgb value from d_queryImage image 
-        outputImage.ptr(j)[i] = queryImage.ptr(xd_0)[xd_1];
-    */
-
 }
 
+// === Interface Class ======================================================================
+// Desc: Manages and runs homographies from queryImage to outputImage
+class HomographyReconstruction {
+public:
+    HomographyReconstruction(py::array_t<imgScalar>& py_queryImage);
+    ~HomographyReconstruction();
 
+    cv::Mat getQueryImage(); // return gets changed to py::buffer_protocol
 
-cv::Mat HomographyReconstruction::pointwiseTransform(
+    // kernel launch function
+    void pointwiseTransform(
+        py::array_t<matScalar>& pyH,
+        const py::array_t<int>& py_polyPts,
+        const py::array_t<int>& py_polyNrm);
+
+private:
+    cv::Mat queryImage;
+    double* d_ptr_H;
+    int* d_ptr_polyPts;
+    int* d_ptr_polyNrm;
+};
+
+// --- Method Definitions --------------------------------------------------------------------
+HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_queryImage)
+    : d_ptr_H(NULL), d_ptr_polyPts(NULL), d_ptr_polyNrm(NULL)
+{
+    // Link py_queryImage data to cv::Mat object queryImage, member of HomographyReconstruction class
+    queryImage = Mat(
+        py_queryImage.shape(0),               // rows
+        py_queryImage.shape(1),               // cols
+        CV_8UC3,                              // data type
+        (imgScalar*)py_queryImage.data());    // data pointer
+
+    cvtColor(queryImage, queryImage, COLOR_RGB2BGR); // change color interpretation to openCV's
+
+    // Allocate space on device for H-matrices and create pointer to them
+
+    cudaMalloc(&d_ptr_H, (3*3)*sizeof(double));
+    cudaMalloc(&d_ptr_polyPts, (4*2)*sizeof(int));
+    cudaMalloc(&d_ptr_polyNrm, (4*2)*sizeof(int));
+}
+
+HomographyReconstruction::~HomographyReconstruction(){
+    cudaFree(d_ptr_H);
+    cudaFree(d_ptr_polyPts);
+    cudaFree(d_ptr_polyNrm);
+}
+
+cv::Mat HomographyReconstruction::getQueryImage(){
+    return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
+}
+
+void HomographyReconstruction::pointwiseTransform(
     py::array_t<matScalar>& pyH,
     const py::array_t<int>& py_polyPts,
     const py::array_t<int>& py_polyNrm
@@ -178,7 +157,7 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 
     cv::cuda::GpuMat d_outputImage(M, N, CV_8UC3, cv::Scalar(0,0,0)); // allocate space for d_outputImage image
 
-
+    
     // --- Start of repeated code ---------------------------------------------------------
     // Copy H-matrices onto device (the same for each kernel)
     cudaMemcpy(d_ptr_H, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
@@ -192,8 +171,10 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     const dim3 gridSize(cv::cudev::divUp(d_outputImage.cols, blockSize.x), 
                         cv::cudev::divUp(d_outputImage.rows, blockSize.y)); 
 
+    
 
-    // Kernel Launch 1 (slow) 
+    
+    // Kernel Launch 2
     d_queryImage.upload(queryImage);
     
     transformKernel<<<gridSize, blockSize>>>(d_queryImage, 
@@ -205,18 +186,50 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     
     d_outputImage.download(outputImage);
 
+    
+    
+    
+    
     // -------------------------------------------------------------------------------------
 
     // show results
-    // imshow("outputImage image", outputImage);
-    // waitKey(0);
+    // auto start = chrono::steady_clock::now();
+    imshow("resized output", outputImage);
+    // auto end = chrono::steady_clock::now();
+    // cout << "Kernel Run Time: "
+    // << chrono::duration_cast<chrono::microseconds>(end - start).count()
+    // << " µs" << endl;
+    waitKey(1);
 
-    return outputImage;
+    return;
 }       
 
+
+
+// === OTHER ====================================================================================
+
+void renderTest(){
+
+    Mat img(100, 100, CV_8UC1, Scalar(0));
+    auto M = img.cols;
+    auto N = img.rows;
+
+    imshow("imshow", img);
+    waitKey(0);
+
+    for (std::size_t i = 0; i < M; ++i){
+        for (std::size_t j = 0; j < N; ++j){
+            img.at<char>(i,j) = 200;
+            imshow("imshow", img);
+            waitKey(1);
+        }
+    }
+    waitKey(0);
+}
+
+// === Python Interfacing =========================================================================
 PYBIND11_MODULE(cppmodule, m){
     m.doc() = "Docstring for cpp homography module";
-    // m.def("pointwiseTransform", &pointwiseTransform, py::return_value_policy::automatic);
     m.def("pointInPoly", []( // Python interface wrapper     
                                     const py::array_t<int>& py_pt, 
                                     const py::array_t<int>& py_polyPts,
@@ -228,11 +241,13 @@ PYBIND11_MODULE(cppmodule, m){
 
                                     return pointInPoly(pt, polyPts, polyNrm);
                                });
+    m.def("renderTest", &renderTest);
 
     py::class_<HomographyReconstruction>(m, "HomographyReconstruction")
         .def(py::init<py::array_t<imgScalar>&>()) // Wrap class constructor
         .def("pointwiseTransform", &HomographyReconstruction::pointwiseTransform)
         .def("getQueryImage", &HomographyReconstruction::getQueryImage)
+        
         // examples for other class element types
         // .def_readwrite("publicVar", &HomographyReconstruction::publicVar)
         ;

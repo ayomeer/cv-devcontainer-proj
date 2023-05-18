@@ -72,7 +72,8 @@
         "__string": "cpp",
         "semaphore": "cpp",
         "bitset": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "ios": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/cpp",
     "cmake.configureOnOpen": false,

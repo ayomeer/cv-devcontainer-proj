@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     build-essential cmake --no-install-recommends gdb \
 	wget unzip pkg-config vim \
 	python3.10 python3-pip python3-dev python3-tk \
-	libgtk2.0-dev language-pack-en-base libncurses5-dev 
+	libgtk2.0-dev language-pack-en-base libncurses5-dev \
+	ffmpeg libsm6 libxext6
 
 
 # Install Python3.10 as default version

@@ -1,9 +1,11 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pyqtgraph
 from lib.cppmodule import HomographyReconstruction as HomRec # path from vs code root --> cd to /app/python
 import cv2 as cv
 import time
+from BlitManager import BlitManager
 
 # --- CONSTANTS ------------------------------------------------------------------------ #
 FIGURE_SIZE = (12, 9)
@@ -33,14 +35,6 @@ points_b = (res*np.diag((165, 240, 60)) @ points_b) # xonar box
 
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 
-"""
-edges = [
-         [4, 5], [5, 6], [6, 7], [7, 4],    # Edges right plane
-         [0, 4], [1, 5], [2, 6], [3, 7],    # Edges connecting left w/ right
-         [0, 1], [1, 2], [2, 3], [3, 0],    # Edges left plane
-         [0, 8], [0, 9], [0, 10],           # Edges indicating the coordinate frame
-        ]
-"""
 edges = [
          [0, 1], [0, 4], [4, 5], [1, 5],    # A
          [3, 7], [3, 2], [7, 6], [2, 6],    # F
@@ -57,7 +51,112 @@ edgecolors = [
              ]
 
 
-# --- HELPER FUNCTIONS ------------------------------------------------------------------ #
+# --- HELPER CLASSES AND FUNCTIONS ------------------------------------------------------ #
+
+# matplotlib event functions
+
+class MouseRotate:
+    def __init__(self, fig, ax, lines, R_c_b):
+        self.fig = fig
+        self.ax = ax
+        self.cid_click = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        self.cid_release = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        self.cid_move = None
+
+        self.startPos = None
+
+        self.lines = lines
+
+        self.R_c_b = R_c_b
+        self.R_x = None
+        self.R_y = None
+        self.R_z = None
+
+        self.bm = BlitManager(self.fig.canvas, self.lines)
+ 
+
+    def on_click(self, event):
+        # enable listening to on_move events 
+        self.startPos = np.array([event.xdata, event.ydata])
+        self.cid_move = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
+
+    def on_motion(self, event):
+        currentPos = np.array([event.xdata, event.ydata])
+        offset = currentPos-self.startPos
+
+        # offset -> rotation matrices
+        radPerPx = np.array([np.pi/ax.get_xlim()[1], -(np.pi/2)/ax.get_ylim()[0]])
+        
+        # rotation angle around body z-axis determined by cursor movement in x-direction
+        # [0] -> x-inout (Left-Right), [1] -> y-input (Up-Down)
+        
+        # phi_z = radPerPx[0]*offset[0] 
+        # R_z = np.array([[np.cos(phi_z), -np.sin(phi_z), 0],
+        #                 [np.sin(phi_z),  np.cos(phi_z), 0],
+        #                 [0,              0,             1]])
+       
+        
+        phi_x = radPerPx[0]*offset[0]
+        self.R_x = np.array([[1, 0,              0            ],
+                        [0, np.cos(phi_x), -np.sin(phi_x)],
+                        [0, np.sin(phi_x),  np.cos(phi_x)]])
+                
+        phi_y = radPerPx[1]*offset[1] 
+        self.R_y = np.array([[np.cos(phi_y),  0, np.sin(phi_y)],
+                        [0,              1, 0            ],
+                        [-np.sin(phi_y), 0, np.cos(phi_y)]])
+        
+        
+        points_c = t_c_cb + self.R_x @ self.R_y @ self.R_c_b @  points_b
+        x_hom = (K_c @ points_c)
+        x = x_hom[:2, :] / x_hom[2, :]   
+        
+        for i, l in enumerate(self.lines):
+            l.set_data(get_edge_lineData(edges[i], x))
+        
+        self.bm.update() # update plot using blitting manager class
+
+        # x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
+        # x_out_A = x.T[[0,1,5,4],:].astype(np.int32)
+        # H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
+
+        # polyPts = x_out_A
+        # polyNrm = getNorms(polyPts)
+
+        # hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten())
+
+        
+    def on_release(self, event):
+        self.fig.canvas.mpl_disconnect(self.cid_move)
+        self.R = self.R_x @ self.R_y @ self.R_c_b
+
+
+def get_edge_lineData(edge: list, image_points: np.ndarray):
+    pt1 = image_points[:, edge[0]]
+    pt2 = image_points[:, edge[1]]
+
+    line_data = (np.array([pt1[1], pt2[1]]), np.array([pt1[0], pt2[0]]))
+    return line_data
+
+
+# Plot box wireframe edges
+def plot_edges(ax, image_points: np.ndarray, edges: list, edgcolors: list = [], anim=False):
+    #plt.ylim(3000, 0)
+    #plt.xlim(0, 4000)
+    
+    lines = []
+    for edgeId, edge in enumerate(edges):
+        pt1 = image_points[:, edge[0]]
+        pt2 = image_points[:, edge[1]]
+        x1 = pt1[0]
+        x2 = pt2[0]
+        y1 = pt1[1]
+        y2 = pt2[1]
+        # in the plot y points upwards so i use -y to let positive y point downwards in the plot
+        colorString = edgecolors[edgeId]
+        lines.append(ax.plot([y1, y2], [x1, x2], colorString, animated=anim)[0])
+    return lines
+
 
 def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
     plt.figure()
@@ -80,25 +179,6 @@ def plotPointsOnImageCV(img: np.ndarray, points: np.ndarray):
     plt.ylabel("coordinate 1")
     plt.legend()
     plt.show(block=False)
-
-# Plot box wireframe edges
-def plot_edges(ax, image_points: np.ndarray, edges: list, edgcolors: list = [], title: str="view"):
-    #plt.ylim(3000, 0)
-    #plt.xlim(0, 4000)
-    for edgeId, edge in enumerate(edges):
-        pt1 = image_points[:, edge[0]]
-        pt2 = image_points[:, edge[1]]
-        x1 = pt1[0]
-        x2 = pt2[0]
-        y1 = pt1[1]
-        y2 = pt2[1]
-        # in the plot y points upwards so i use -y to let positive y point downwards in the plot
-        colorString = edgecolors[edgeId]
-        ax.plot([y1, y2], [x1, x2], colorString)
-    plt.title(title)
-    plt.xlabel('y - axis')
-    plt.ylabel('x - axis')
-    return
 
 # Plot RANSAC matches
 def plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches):
@@ -290,9 +370,15 @@ def getNorms(polyPts):
 if __name__ == "__main__":   
    
     ## -- Read images ----------------------------------------------------------------
-    trainImage = plt.imread('/app/_img/xonar_template.jpg')
-    queryImage = plt.imread('/app/_img/xonar_perspective.jpg')
-    
+    trainImage = cv.imread('/app/_img/xonar_template.jpg', cv.IMREAD_COLOR)
+    queryImage = cv.imread('/app/_img/xonar_perspective_crop.jpg', cv.IMREAD_COLOR)
+
+    trainSize = (trainImage.shape[1]//2, trainImage.shape[0]//2) # (width, height)
+    querySize = (queryImage.shape[1]//2, queryImage.shape[0]//2)
+
+    trainImage = cv.resize(trainImage, trainSize)
+    queryImage = cv.resize(queryImage, querySize)
+
     ## -- Feature Detection: SIFT ------------------------------------------------------
     sift = cv.SIFT_create(
         nfeatures=3000,
@@ -384,63 +470,78 @@ if __name__ == "__main__":
 
     # View the image and the wireframe overlay
     plt.imshow(queryImage)
-    plt.title("Undestorted Image")
     ax = plt.gca()
-    plot_edges(ax, x_query, edges, title="AR Wireframe")
+    plot_edges(ax, x_query, edges, anim=False)
     plt.show(block=False)
 
-    ## -- Alter wireframe pose ----------------------------------------------------
-    # rx_ = np.array([1,0,0]).reshape((3,1))
-    # ry_ = np.array([0,1,0]).reshape((3,1))
-    # rz_ = np.array([0,0,1]).reshape((3,1))
-    # R_c_b_ = np.hstack((rx_, ry_, rz_))
 
-    # t_ = np.array([0, 0, 983]).reshape(3,1)
-    # t_c_cb = t_
+    ## -- Altered Pose -------------------------------------------------------------
+    phi_z = np.deg2rad(-30)
+    R_z = np.array([[np.cos(phi_z), -np.sin(phi_z), 0],
+                    [np.sin(phi_z),  np.cos(phi_z), 0],
+                    [0,              0,             1]])
 
-    phi = np.deg2rad(-30)
-    R_z = np.array([[np.cos(phi), -np.sin(phi), 0],
-                    [np.sin(phi),  np.cos(phi), 0],
-                    [0,            0,           1]])
+    points_c = t_c_cb + R_c_b @ R_z @ points_b
+    x_hom = (K_c @ points_c)
+    x = x_hom[:2, :] / x_hom[2, :]   
 
-    
-    # Transform wireframe coordinates into camera coordinates   
-    points_c_output = t_c_cb + R_c_b @ R_z @ points_b # wireframe points in outputImage
-
-    # Project onto camera sensor and switch to inhom. coords
-    x_output_hom = (K_c @ points_c_output)
-    x_output = x_output_hom[:2, :] / x_output_hom[2, :]    
-
-    # Plot altered wireframe
-    fig, ax = plt.subplots()
-    outputImage = np.zeros((queryImage.shape))
-    plt.imshow(outputImage)
-    ax = plt.gca()
-    plot_edges(ax, x_output, edges, title="Altered Wireframe")
-    plt.show(block=False)
-
-    plt.imshow(outputImage)
-    plt.show(block=False)
-    
-    ## -- Compute new homographies queryImage -> outputImage
     x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
-    x_out_A = x_output.T[[0,1,5,4],:].astype(np.int32)
-    H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
+    x_out_A = x.T[[0,1,5,4],:].astype(np.int32)
+    H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A)
+
+    ## -- Re-Rendering Faces ------------------------------------------------------
+
+    polyPts = x_out_A
+    polyNrm = getNorms(polyPts)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    outputImage = np.zeros((queryImage.shape)) 
+    ax.imshow(outputImage)
+    plt.show(block=False)
+
+    hr = HomRec(queryImage)
+    # ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
+
+    lines = plot_edges(ax, x_query, edges, anim=True)
+    mouseInput = MouseRotate(fig, ax, lines, R_c_b)
     
+    plt.show(block=False)
+    plt.pause(0.1)
+
+    plt.show(block=True)
+    
+
+
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    outputImage = np.zeros((queryImage.shape)) 
+    ax.imshow(outputImage)
+    mouseInput.lines = plot_edges(ax, x_query, edges) # mouseInput.lines
+    
+    mouseInput = MouseRotate(fig, ax, R_c_b)
+    plt.show(block=False)
+    plt.pause(.1)
+
+    plt.show(block=True)
+    """
+
+    """ CUDA/CPP stuff 
+    x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
+    x_out_A = x.T[[0,1,5,4],:].astype(np.int32)
+    H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
     
     polyPts = x_out_A
     polyNrm = getNorms(polyPts)
     
     hr = HomRec(queryImage)
     ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
-    
+
     plt.imshow(ret)
     plt.show(block=True)
+    """
 
-
-    dummy = 1
-
-
-
+    
 
     

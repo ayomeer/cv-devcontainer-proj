@@ -1,4 +1,6 @@
 ipython
 tk
 matplotlib
+pyqt5
+pyqtgraph
 pandas
