@@ -7,6 +7,7 @@ import cv2 as cv
 import time
 from BlitManager import BlitManager
 
+plt.ion()
 # --- CONSTANTS ------------------------------------------------------------------------ #
 FIGURE_SIZE = (12, 9)
 
@@ -71,6 +72,7 @@ class MouseRotate:
         self.R_x = None
         self.R_y = None
         self.R_z = None
+        self.x = None
 
         self.bm = BlitManager(self.fig.canvas, self.lines)
  
@@ -109,27 +111,38 @@ class MouseRotate:
         
         points_c = t_c_cb + self.R_x @ self.R_y @ self.R_c_b @  points_b
         x_hom = (K_c @ points_c)
-        x = x_hom[:2, :] / x_hom[2, :]   
+        self.x = x_hom[:2, :] / x_hom[2, :]   
         
         for i, l in enumerate(self.lines):
-            l.set_data(get_edge_lineData(edges[i], x))
+            l.set_data(get_edge_lineData(edges[i], self.x))
         
         self.bm.update() # update plot using blitting manager class
 
-        # x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
-        # x_out_A = x.T[[0,1,5,4],:].astype(np.int32)
-        # H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
-
-        # polyPts = x_out_A
-        # polyNrm = getNorms(polyPts)
-
-        # hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten())
 
         
     def on_release(self, event):
+        t00 = time.perf_counter()
         self.fig.canvas.mpl_disconnect(self.cid_move)
         self.R = self.R_x @ self.R_y @ self.R_c_b
 
+        x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
+        x_out_A = self.x.T[[0,1,5,4],:].astype(np.int32)
+        H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
+
+        polyPts = x_out_A
+        polyNrm = getNorms(polyPts)
+
+        t0 = time.perf_counter(); print("calc time: ", t0-t00)
+        ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
+        t1 = time.perf_counter(); print("cpp time: ", t1-t0)
+        axIm = ax.imshow(ret)
+        t2 = time.perf_counter(); print("imshow time: ", t2-t1)
+
+        plt.show(block=False)
+        #self.fig.canvas.draw()
+        t3 = time.perf_counter(); print("draw time: ", t3-t2)
+        print("overall on_release time: ", t3-t00)
+        print("----------------------------------------")
 
 def get_edge_lineData(edge: list, image_points: np.ndarray):
     pt1 = image_points[:, edge[0]]
@@ -460,88 +473,35 @@ if __name__ == "__main__":
                     [0, fy, cy], 
                     [0, 0, 1]])
 
- 
-    # Transform wireframe corner coordinates into camera coordinates
+    # Transform wireframe corner coordinates into camera coordinates 
+    # and project onto camera sensor
     points_c_query = R_c_b @ points_b + t_c_cb
-
-    # Project onto camera sensor
-    x_query_hom = (K_c @ points_c_query)
+    x_query_hom = (K_c @ points_c_query)  
     x_query = x_query_hom[:2, :] / x_query_hom[2, :]
 
-    # View the image and the wireframe overlay
+    """ View the image and the wireframe overlay
     plt.imshow(queryImage)
     ax = plt.gca()
     plot_edges(ax, x_query, edges, anim=False)
     plt.show(block=False)
-
-
-    ## -- Altered Pose -------------------------------------------------------------
-    phi_z = np.deg2rad(-30)
-    R_z = np.array([[np.cos(phi_z), -np.sin(phi_z), 0],
-                    [np.sin(phi_z),  np.cos(phi_z), 0],
-                    [0,              0,             1]])
-
-    points_c = t_c_cb + R_c_b @ R_z @ points_b
-    x_hom = (K_c @ points_c)
-    x = x_hom[:2, :] / x_hom[2, :]   
-
-    x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
-    x_out_A = x.T[[0,1,5,4],:].astype(np.int32)
-    H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A)
-
+    """
+    
     ## -- Re-Rendering Faces ------------------------------------------------------
-
-    polyPts = x_out_A
-    polyNrm = getNorms(polyPts)
-
+    # Set up figure
     fig = plt.figure()
     ax = fig.add_subplot(111)
     outputImage = np.zeros((queryImage.shape)) 
     ax.imshow(outputImage)
     plt.show(block=False)
 
-    hr = HomRec(queryImage)
-    # ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
-
-    lines = plot_edges(ax, x_query, edges, anim=True)
-    mouseInput = MouseRotate(fig, ax, lines, R_c_b)
+    # Set up interactive rendering
+    hr = HomRec(queryImage) # instantiate cpp-class object for re-rendering on GPU
+    lines = plot_edges(ax, x_query, edges, anim=True) # plot wireframe to interact with
+    mouseInput = MouseRotate(fig, ax, lines, R_c_b) # instantiate py-class object for interactive re-rendering
     
     plt.show(block=False)
     plt.pause(0.1)
 
     plt.show(block=True)
     
-
-
-    """
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    outputImage = np.zeros((queryImage.shape)) 
-    ax.imshow(outputImage)
-    mouseInput.lines = plot_edges(ax, x_query, edges) # mouseInput.lines
-    
-    mouseInput = MouseRotate(fig, ax, R_c_b)
-    plt.show(block=False)
-    plt.pause(.1)
-
-    plt.show(block=True)
-    """
-
-    """ CUDA/CPP stuff 
-    x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
-    x_out_A = x.T[[0,1,5,4],:].astype(np.int32)
-    H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
-    
-    polyPts = x_out_A
-    polyNrm = getNorms(polyPts)
-    
-    hr = HomRec(queryImage)
-    ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
-
-    plt.imshow(ret)
-    plt.show(block=True)
-    """
-
-    
-
     

@@ -88,7 +88,7 @@ public:
     cv::Mat getQueryImage(); // return gets changed to py::buffer_protocol
 
     // kernel launch function
-    void pointwiseTransform(
+    cv::Mat pointwiseTransform(
         py::array_t<matScalar>& pyH,
         const py::array_t<int>& py_polyPts,
         const py::array_t<int>& py_polyNrm);
@@ -130,7 +130,7 @@ cv::Mat HomographyReconstruction::getQueryImage(){
     return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
 }
 
-void HomographyReconstruction::pointwiseTransform(
+cv::Mat HomographyReconstruction::pointwiseTransform(
     py::array_t<matScalar>& pyH,
     const py::array_t<int>& py_polyPts,
     const py::array_t<int>& py_polyNrm
@@ -193,18 +193,18 @@ void HomographyReconstruction::pointwiseTransform(
     // -------------------------------------------------------------------------------------
 
     // show results
-    // auto start = chrono::steady_clock::now();
-    imshow("resized output", outputImage);
-    // auto end = chrono::steady_clock::now();
-    // cout << "Kernel Run Time: "
-    // << chrono::duration_cast<chrono::microseconds>(end - start).count()
-    // << " µs" << endl;
-    waitKey(1);
 
-    return;
+    // imshow("resized output", outputImage);
+    // waitKey(1);
+
+    return outputImage;
 }       
 
-
+// auto start = chrono::steady_clock::now();
+// auto end = chrono::steady_clock::now();
+// cout << "Kernel Run Time: "
+// << chrono::duration_cast<chrono::microseconds>(end - start).count()
+// << " µs" << endl;
 
 // === OTHER ====================================================================================
 
