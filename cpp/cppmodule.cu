@@ -86,6 +86,7 @@ public:
     ~HomographyReconstruction();
 
     cv::Mat getQueryImage(); // return gets changed to py::buffer_protocol
+    void showQueryImage();
 
     // kernel launch function
     cv::Mat pointwiseTransform(
@@ -113,14 +114,14 @@ HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_qu
 
     cvtColor(queryImage, queryImage, COLOR_RGB2BGR); // change color interpretation to openCV's
 
-    // Allocate space on device for H-matrices and create pointer to them
-
+    // Allocate space on device for H-matrices and poly data and link device pointers
     cudaMalloc(&d_ptr_H, (3*3)*sizeof(double));
     cudaMalloc(&d_ptr_polyPts, (4*2)*sizeof(int));
     cudaMalloc(&d_ptr_polyNrm, (4*2)*sizeof(int));
 }
 
 HomographyReconstruction::~HomographyReconstruction(){
+    // Free device memory
     cudaFree(d_ptr_H);
     cudaFree(d_ptr_polyPts);
     cudaFree(d_ptr_polyNrm);
@@ -130,6 +131,11 @@ cv::Mat HomographyReconstruction::getQueryImage(){
     return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
 }
 
+void HomographyReconstruction::showQueryImage(){
+    cv::imshow("queryImage", queryImage);
+    cv::waitKey(1);
+    return;
+}
 cv::Mat HomographyReconstruction::pointwiseTransform(
     py::array_t<matScalar>& pyH,
     const py::array_t<int>& py_polyPts,
@@ -185,17 +191,11 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     cudaDeviceSynchronize();
     
     d_outputImage.download(outputImage);
-
-    
-    
-    
-    
     // -------------------------------------------------------------------------------------
 
     // show results
-
-    // imshow("resized output", outputImage);
-    // waitKey(1);
+    // imshow("Image", outputImage);
+    // waitKey(15);
 
     return outputImage;
 }       
@@ -215,15 +215,16 @@ void renderTest(){
     auto N = img.rows;
 
     imshow("imshow", img);
-    waitKey(0);
+    waitKey(1);
 
     for (std::size_t i = 0; i < M; ++i){
         for (std::size_t j = 0; j < N; ++j){
-            img.at<char>(i,j) = 200;
+            img.at<char>(i,j) = 255;
             imshow("imshow", img);
             waitKey(1);
         }
     }
+    imshow("imshow", img);
     waitKey(0);
 }
 
@@ -247,6 +248,7 @@ PYBIND11_MODULE(cppmodule, m){
         .def(py::init<py::array_t<imgScalar>&>()) // Wrap class constructor
         .def("pointwiseTransform", &HomographyReconstruction::pointwiseTransform)
         .def("getQueryImage", &HomographyReconstruction::getQueryImage)
+        .def("showQueryImage", &HomographyReconstruction::showQueryImage)
         
         // examples for other class element types
         // .def_readwrite("publicVar", &HomographyReconstruction::publicVar)

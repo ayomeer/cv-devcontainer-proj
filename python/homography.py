@@ -1,13 +1,16 @@
 
 import numpy as np
+import matplotlib
+matplotlib.use('GTK4Agg') 
+matplotlib.rcParams['image.interpolation'] = "none"
 import matplotlib.pyplot as plt
 import pyqtgraph
 from lib.cppmodule import HomographyReconstruction as HomRec # path from vs code root --> cd to /app/python
 import cv2 as cv
 import time
-from BlitManager import BlitManager
 
-plt.ion()
+# plt.ion() # interactive plot mode: automatic redraw on data changes
+
 # --- CONSTANTS ------------------------------------------------------------------------ #
 FIGURE_SIZE = (12, 9)
 
@@ -57,7 +60,7 @@ edgecolors = [
 # matplotlib event functions
 
 class MouseRotate:
-    def __init__(self, fig, ax, lines, R_c_b):
+    def __init__(self, fig, ax, lines, image, R_c_b):
         self.fig = fig
         self.ax = ax
         self.cid_click = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
@@ -67,6 +70,7 @@ class MouseRotate:
         self.startPos = None
 
         self.lines = lines
+        self.image = image
 
         self.R_c_b = R_c_b
         self.R_x = None
@@ -74,8 +78,7 @@ class MouseRotate:
         self.R_z = None
         self.x = None
 
-        self.bm = BlitManager(self.fig.canvas, self.lines)
- 
+        # self.bm = BlitManager(self.fig.canvas, self.lines)
 
     def on_click(self, event):
         # enable listening to on_move events 
@@ -116,14 +119,7 @@ class MouseRotate:
         for i, l in enumerate(self.lines):
             l.set_data(get_edge_lineData(edges[i], self.x))
         
-        self.bm.update() # update plot using blitting manager class
-
-
-        
-    def on_release(self, event):
-        t00 = time.perf_counter()
-        self.fig.canvas.mpl_disconnect(self.cid_move)
-        self.R = self.R_x @ self.R_y @ self.R_c_b
+        # self.bm.update() # update plot using blitting manager class
 
         x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
         x_out_A = self.x.T[[0,1,5,4],:].astype(np.int32)
@@ -131,18 +127,17 @@ class MouseRotate:
 
         polyPts = x_out_A
         polyNrm = getNorms(polyPts)
-
-        t0 = time.perf_counter(); print("calc time: ", t0-t00)
+        
         ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
-        t1 = time.perf_counter(); print("cpp time: ", t1-t0)
-        axIm = ax.imshow(ret)
-        t2 = time.perf_counter(); print("imshow time: ", t2-t1)
-
+        
+        image.set_data(ret)
         plt.show(block=False)
-        #self.fig.canvas.draw()
-        t3 = time.perf_counter(); print("draw time: ", t3-t2)
-        print("overall on_release time: ", t3-t00)
-        print("----------------------------------------")
+        
+    def on_release(self, event):
+        self.fig.canvas.mpl_disconnect(self.cid_move)
+        self.R = self.R_x @ self.R_y @ self.R_c_b
+
+        
 
 def get_edge_lineData(edge: list, image_points: np.ndarray):
     pt1 = image_points[:, edge[0]]
@@ -491,17 +486,18 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = fig.add_subplot(111)
     outputImage = np.zeros((queryImage.shape)) 
-    ax.imshow(outputImage)
+    image = ax.imshow(outputImage)
     plt.show(block=False)
 
     # Set up interactive rendering
     hr = HomRec(queryImage) # instantiate cpp-class object for re-rendering on GPU
-    lines = plot_edges(ax, x_query, edges, anim=True) # plot wireframe to interact with
-    mouseInput = MouseRotate(fig, ax, lines, R_c_b) # instantiate py-class object for interactive re-rendering
     
-    plt.show(block=False)
-    plt.pause(0.1)
+    lines = plot_edges(ax, x_query, edges, anim=False) # plot wireframe to interact with
+    mouseInput = MouseRotate(fig, ax, lines, image, R_c_b) # instantiate py-class object for interactive re-rendering
+    
+    # plt.show(block=False)
+    # plt.pause(0.1)
 
     plt.show(block=True)
-    
+
     
