@@ -13,10 +13,13 @@ typedef std::uint8_t imgScalar;
 typedef double matScalar;
 
 
+
 using namespace std;
 using namespace cv;
 
 // === Cuda device code (Kernel) ============================================================
+
+enum polyFace {A=0, B=1, C=2};
 
 __host__ __device__ int pointInPoly(
     const int* pt,
@@ -63,7 +66,7 @@ __global__ void transformKernel
 
     int pt[2] = {j, i}; //coord switch: cv --> x-down
 
-    if (pointInPoly(pt, polyPts, polyNrm)){
+    if (pointInPoly(pt, polyPts, polyNrm) == A){
         // H*xu_hom 
         float xd_hom_0 = H[0]*j + H[1]*i + H[2];
         float xd_hom_1 = H[3]*j + H[4]*i + H[5];
@@ -208,25 +211,25 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 
 // === OTHER ====================================================================================
 
-void renderTest(){
+// void renderTest(){
 
-    Mat img(100, 100, CV_8UC1, Scalar(0));
-    auto M = img.cols;
-    auto N = img.rows;
+//     Mat img(100, 100, CV_8UC1, Scalar(0));
+//     auto M = img.cols;
+//     auto N = img.rows;
 
-    imshow("imshow", img);
-    waitKey(1);
+//     imshow("imshow", img);
+//     waitKey(1);
 
-    for (std::size_t i = 0; i < M; ++i){
-        for (std::size_t j = 0; j < N; ++j){
-            img.at<char>(i,j) = 255;
-            imshow("imshow", img);
-            waitKey(1);
-        }
-    }
-    imshow("imshow", img);
-    waitKey(0);
-}
+//     for (std::size_t i = 0; i < M; ++i){
+//         for (std::size_t j = 0; j < N; ++j){
+//             img.at<char>(i,j) = 255;
+//             imshow("imshow", img);
+//             waitKey(1);
+//         }
+//     }
+//     imshow("imshow", img);
+//     waitKey(0);
+// }
 
 // === Python Interfacing =========================================================================
 PYBIND11_MODULE(cppmodule, m){
@@ -242,7 +245,7 @@ PYBIND11_MODULE(cppmodule, m){
 
                                     return pointInPoly(pt, polyPts, polyNrm);
                                });
-    m.def("renderTest", &renderTest);
+    // m.def("renderTest", &renderTest);
 
     py::class_<HomographyReconstruction>(m, "HomographyReconstruction")
         .def(py::init<py::array_t<imgScalar>&>()) // Wrap class constructor

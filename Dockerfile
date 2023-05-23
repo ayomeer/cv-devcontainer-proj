@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
 	wget unzip pkg-config vim \
 	python3.10 python3-pip python3-dev python3-tk \
 	libgtk2.0-dev language-pack-en-base libncurses5-dev \
-	ffmpeg libsm6 libxext6
+	ffmpeg libsm6 libxext6 \
+	python3-gi python3-gi-cairo gir1.2-gtk-4.0
 
 
 # Install Python3.10 as default version

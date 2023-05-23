@@ -1,10 +1,9 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('GTK4Agg') 
+matplotlib.use('GTK4Cairo') 
 matplotlib.rcParams['image.interpolation'] = "none"
 import matplotlib.pyplot as plt
-import pyqtgraph
 from lib.cppmodule import HomographyReconstruction as HomRec # path from vs code root --> cd to /app/python
 import cv2 as cv
 import time
@@ -128,6 +127,7 @@ class MouseRotate:
         polyPts = x_out_A
         polyNrm = getNorms(polyPts)
         
+        # call cpp-module to carry out homographies (arrays have to be explicitly flattened)
         ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
         
         image.set_data(ret)
@@ -483,9 +483,11 @@ if __name__ == "__main__":
     
     ## -- Re-Rendering Faces ------------------------------------------------------
     # Set up figure
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
     outputImage = np.zeros((queryImage.shape)) 
+    
+    dpi = 100
+    fig = plt.figure(figsize=(outputImage.shape[1]/dpi, outputImage.shape[0]/dpi))
+    ax = fig.add_subplot(111)
     image = ax.imshow(outputImage)
     plt.show(block=False)
 
