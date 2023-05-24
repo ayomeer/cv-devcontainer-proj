@@ -17,19 +17,23 @@ FIGURE_SIZE = (12, 9)
 points_b = np.array(
         [
             # qube wireframe (A->top face, F-> bottom face)
-            [0, 0, 0], # 0: A[0,0]
-            [1, 0, 0], # 1: A[1,0]
-            [1, 0, 1], # 2: F[1,0]
-            [0, 0, 1], # 3: F[0,0]
-            [0, 1, 0], # 4: A[0,1]
-            [1, 1, 0], # 5: A[1,1]
-            [1, 1, 1], # 6: F[1,1]
-            [0, 1, 1], # 7: F[0,1]
-            # axes representation
+            [0, 0, 0], # A[0,0]           
+            [1, 0, 0], # A[1,0]      3__________________2
+            [1, 1, 0], # A[1,1]      /|      A         /|
+            [0, 1, 0], # A[0,1]   0 /_|______________1/ |
+            [0, 0, 1], # F[0,0]     |E|        D      |C|
+            [1, 0, 1], # F[1,0]     | |_____B_________|_|
+            [1, 1, 1], # F[1,1]     | /7              | /6
+            [0, 1, 1], # F[0,1]     |/_______F________|/
+            # axes representation   4                 5
             [0.3, 0, 0],
             [0, 0.3, 0],
             [0, 0, 0.3]
         ]).T
+
+indexList_faceA = [0,1,2,3] # vertices must be anti-clockwise ordered 
+indexList_faceB = [0,4,5,1] # for pointInPoly check in cpp module to work
+indexList_faceC = [1,5,6,2]
 
 # Individual scaling of the cube's axes
 res = 2 # px/mm
@@ -39,9 +43,9 @@ points_b = (res*np.diag((165, 240, 60)) @ points_b) # xonar box
 # Lines on the cuboid as sequence of tuples containing the indices of the starting point and the endpoint
 
 edges = [
-         [0, 1], [0, 4], [4, 5], [1, 5],    # A
-         [3, 7], [3, 2], [7, 6], [2, 6],    # F
-         [0, 3], [4, 7], [5, 6], [1, 2],    # corder edges
+         [0, 1], [1, 2], [2, 3], [3, 0],    # A
+         [4, 5], [5, 6], [6, 7], [7, 4],    # F
+         [0, 4], [1, 5], [2, 6], [3, 7],    # corder edges
          [0, 8], [0, 9], [0, 10],           # Edges indicating the coordinate frame
         ]
 
@@ -119,16 +123,37 @@ class MouseRotate:
             l.set_data(get_edge_lineData(edges[i], self.x))
         
         # self.bm.update() # update plot using blitting manager class
-
-        x_query_A = x_query.T[[0,1,5,4],:].astype(np.int32)
-        x_out_A = self.x.T[[0,1,5,4],:].astype(np.int32)
-        H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
-
-        polyPts = x_out_A
-        polyNrm = getNorms(polyPts)
         
+        # -- prepare data for passing to cpp --
+        
+        # Face A
+        x_query_A = x_query.T[indexList_faceA, :].astype(np.int32) # wireframe points are hstacked, whereas 4pointcorr takes vstacked points
+        x_out_A = self.x.T[indexList_faceA, :].astype(np.int32)    # hence the transpose with .T
+        H_A = homographyFrom4PointCorrespondences(x_query_A, x_out_A) 
+        
+        # Face B
+        x_query_B = x_query.T[indexList_faceB, :].astype(np.int32) 
+        x_out_B = self.x.T[indexList_faceB, :].astype(np.int32)    
+        H_B = homographyFrom4PointCorrespondences(x_query_B, x_out_B) 
+        
+        # Face C
+        x_query_C = x_query.T[indexList_faceC, :].astype(np.int32) 
+        x_out_C = self.x.T[indexList_faceC, :].astype(np.int32)    
+        H_C = homographyFrom4PointCorrespondences(x_query_C, x_out_C) 
+        
+        # stack face information into single array for passing to cpp module
+        polyPts = np.vstack((x_out_A,  
+                             x_out_B, 
+                             x_out_C)) 
+        
+        polyNrm = np.vstack((getNorms(x_out_A),
+                             getNorms(x_out_B),
+                             getNorms(x_out_C)))
+        
+        H = np.vstack((H_A, H_B, H_C))
+
         # call cpp-module to carry out homographies (arrays have to be explicitly flattened)
-        ret = np.array(hr.pointwiseTransform(H_A, polyPts.flatten(), polyNrm.flatten()), copy=False)
+        ret = np.array(hr.pointwiseTransform(H, polyPts.flatten(), polyNrm.flatten()), copy=False)
         
         image.set_data(ret)
         plt.show(block=False)

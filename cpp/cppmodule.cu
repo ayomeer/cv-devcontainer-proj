@@ -19,8 +19,6 @@ using namespace cv;
 
 // === Cuda device code (Kernel) ============================================================
 
-enum polyFace {A=0, B=1, C=2};
-
 __host__ __device__ int pointInPoly(
     const int* pt,
     const int* polyPts,
@@ -51,6 +49,10 @@ __host__ __device__ int pointInPoly(
     return inside; 
 }
 
+enum H_idx_offsets {H_A_offset=0*3*3, H_B_offset=1*3*3, H_C_offset=2*3*3};
+enum pt_offsets {pts_A_offset=0*4*2, pts_B_offset=1*4*2, pts_C_offset=2*4*2};
+enum nrm_offsets {nrm_A_offset=0*4*2, nrm_B_offset=1*4*2, nrm_C_offset=2*4*2};
+
 __global__ void transformKernel
 (
     const cv::cuda::PtrStepSz<uchar3> queryImage,
@@ -63,22 +65,39 @@ __global__ void transformKernel
     // Get d_outputImage pixel indexes for this thread from CUDA framework
     const int i = blockIdx.x * blockDim.x + threadIdx.x; // right
     const int j = blockIdx.y * blockDim.y + threadIdx.y; // down
-
     int pt[2] = {j, i}; //coord switch: cv --> x-down
 
-    if (pointInPoly(pt, polyPts, polyNrm) == A){
-        // H*xu_hom 
-        float xd_hom_0 = H[0]*j + H[1]*i + H[2];
-        float xd_hom_1 = H[3]*j + H[4]*i + H[5];
-        float xd_hom_2 = H[6]*j + H[7]*i + H[8];
+    int H_offset = 0;
 
-        // Convert to inhom and round to int for use as indexes
-        int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
-        int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
 
-        // Get rgb value from d_queryImage image 
-        outputImage.ptr(j)[i] = queryImage.ptr(xd_0)[xd_1];
+    if (pointInPoly(pt, &polyPts[pts_A_offset], &polyNrm[nrm_A_offset])){
+        H_offset = H_A_offset;
     }
+    
+    else if (pointInPoly(pt, &polyPts[pts_B_offset], &polyNrm[nrm_B_offset])){
+        H_offset = H_B_offset;
+    }
+    else if (pointInPoly(pt, &polyPts[pts_C_offset], &polyNrm[nrm_C_offset])){
+        H_offset = H_C_offset;
+    }
+    else {
+        // Point in none of the polygons -> nothing to do
+        return;
+    }
+
+    // Do transform depending on poly (H_X*xu_hom)
+    float xd_hom_0 = H[0+H_offset]*j + H[1+H_offset]*i + H[2+H_offset];
+    float xd_hom_1 = H[3+H_offset]*j + H[4+H_offset]*i + H[5+H_offset];
+    float xd_hom_2 = H[6+H_offset]*j + H[7+H_offset]*i + H[8+H_offset];
+
+    // Convert to inhom and round to int for use as indexes
+    int xd_0 = (int)(xd_hom_0 / xd_hom_2); // x
+    int xd_1 = (int)(xd_hom_1 / xd_hom_2); // y
+
+    // Get rgb value from d_queryImage image 
+    outputImage.ptr(j)[i] = queryImage.ptr(xd_0)[xd_1];
+
+    return;
 }
 
 // === Interface Class ======================================================================
@@ -118,9 +137,9 @@ HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_qu
     cvtColor(queryImage, queryImage, COLOR_RGB2BGR); // change color interpretation to openCV's
 
     // Allocate space on device for H-matrices and poly data and link device pointers
-    cudaMalloc(&d_ptr_H, (3*3)*sizeof(double));
-    cudaMalloc(&d_ptr_polyPts, (4*2)*sizeof(int));
-    cudaMalloc(&d_ptr_polyNrm, (4*2)*sizeof(int));
+    cudaMalloc(&d_ptr_H, (3*3*3)*sizeof(double));
+    cudaMalloc(&d_ptr_polyPts, (3*4*2)*sizeof(int));
+    cudaMalloc(&d_ptr_polyNrm, (3*4*2)*sizeof(int));
 }
 
 HomographyReconstruction::~HomographyReconstruction(){
@@ -151,10 +170,10 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     double* arrH = (matScalar*)pyH.data(); // or: const double* arrH = pyH.data();
 
     // Link py_polyPts to C-array
-    const int* polyPts = py_polyPts.data();
+    const int* polyPts = (const int*)py_polyPts.data();
 
     // Link py_polyNrm to C-array
-    const int* polyNrm = py_polyNrm.data();
+    const int* polyNrm = (const int*)py_polyNrm.data();
 
     // --- CUDA Host Code ------------------------------------------------------------------
     // Prepare images
@@ -170,8 +189,8 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     // --- Start of repeated code ---------------------------------------------------------
     // Copy H-matrices onto device (the same for each kernel)
     cudaMemcpy(d_ptr_H, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_ptr_polyPts, polyPts, 4*2*sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_ptr_polyNrm, polyNrm, 4*2*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ptr_polyPts, polyPts, 3*4*2*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ptr_polyNrm, polyNrm, 3*4*2*sizeof(int), cudaMemcpyHostToDevice);
     
     // Prep kernel launch
     d_queryImage.upload(queryImage);
