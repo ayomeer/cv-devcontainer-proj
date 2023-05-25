@@ -1,7 +1,7 @@
 FROM python:3.10
 WORKDIR /app
 
-ARG OPENCV_VERSION=4.7 # latest stable release at this time
+ARG OPENCV_VERSION=4.7.0 
 
 # Install basic utility, C++ tools and OpenCV dependencies
 RUN apt-get update && apt-get install -y \
@@ -16,7 +16,7 @@ RUN pip install -r ./requirements.txt
 
 # Get, build and install OpenCV base modules (may take some time)
 RUN mkdir -p /opencv && cd /opencv && \
-    wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip.zip && \
+    wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
     unzip opencv.zip && \
     mkdir -p build && cd build && \ 
     cmake \
@@ -26,7 +26,7 @@ RUN mkdir -p /opencv && cd /opencv && \
     -D BUILD_PERF_TESTS=OFF \
     -D BUILD_EXAMPLES=OFF \
     -D BUILD_opencv_apps=OFF \
-    ../opencv-${OPENCV_VERSION}.zip | tee cmake.log && \
+    ../opencv-${OPENCV_VERSION} | tee cmake.log && \
     make -j"$(nproc)" && \
     make install && ldconfig
 
