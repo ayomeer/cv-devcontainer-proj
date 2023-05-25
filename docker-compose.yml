@@ -2,17 +2,14 @@ services:
   app: 
     image: ayomeer/cv-devcontainer-image:latest
     container_name: devcontainer
-    privileged: true
     command: sh
-    network_mode: host  # works despite documentation saying it only works for linux host
-                        # --> needed, so host.docker.internal points to actual host IP
-                        #     and not Docker subnet
+    network_mode: host  # needed, so host.docker.internal points to actual host IP
+                        # and not Docker subnet
     volumes:
-      - .:/app
-
-# uncomment if hosting Docker container on windows      
+      - .:/app          # mount project directory
+    
     environment:
-     - DISPLAY=host.docker.internal:0.0 # set display environment to host IP
-     - MPLBACKEND=TkAgg                 # set matplotlib backend to X11 compatible one
+     - DISPLAY=host.docker.internal:0.0 # set display environment to local host IP
+     - MPLBACKEND=TkAgg                 # set matplotlib backend to graphics capable one
     stdin_open: true
     tty: true

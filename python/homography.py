@@ -89,11 +89,16 @@ def main():
 
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
 
-    # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
-    img_u_shape = (M, N, 3)
 
+    # Undistort..
     t1 = time.perf_counter()
-    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    # ..using python function
+    img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    
+    # ..using cpp module
+    # img_u_shape = (M, N, 3)
+    # img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    
     t2 = time.perf_counter()
     tUndistort = t2-t1
     print("tUndistort ", tUndistort)
