@@ -1,7 +1,7 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('GTK4Cairo') 
+matplotlib.use('GTK4Agg') 
 matplotlib.rcParams['image.interpolation'] = "none"
 import matplotlib.pyplot as plt
 from lib.cppmodule import HomographyReconstruction as HomRec # path from vs code root --> cd to /app/python
