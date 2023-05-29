@@ -5,15 +5,12 @@
     "workspaceFolder": "/app",
     "customizations": {
         "vscode": {
-            "settings": {
-                "jupyter.sendSelectionToInteractiveWindow": true
-            },
             "extensions": [
-				"ms-python.python",
-				"ms-vscode.cpptools",
-				"076923.python-image-preview",
-				"ms-vscode.cmake-tools"
-			]
+							"ms-python.python",
+							"ms-vscode.cpptools",
+							"ms-vscode.cmake-tools",
+							"076923.python-image-preview"
+						]
         }
     },
     "shutdownAction": "stopCompose"

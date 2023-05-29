@@ -10,11 +10,10 @@ RUN apt-get update && apt-get install -y \
 	libgtk2.0-dev libncurses5-dev libcanberra-gtk-module 
 	
 
-# Install additional Python packages
-COPY ./requirements.txt /app
-RUN pip install -r ./requirements.txt 
+# Numpy needs to be installed before opencv so Python bindings can be generated
+RUN pip install numpy
 
-# Get, build and install OpenCV base modules (may take some time)
+# Get, build and install OpenCV main modules (may take some time)
 RUN mkdir -p /opencv && cd /opencv && \
     wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
     unzip opencv.zip && \
@@ -30,3 +29,6 @@ RUN mkdir -p /opencv && cd /opencv && \
     make -j"$(nproc)" && \
     make install && ldconfig
 
+# Install additional Python packages
+COPY ./requirements.txt /app
+RUN pip install -r ./requirements.txt 

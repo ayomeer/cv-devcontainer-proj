@@ -1,4 +1,7 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
-plt.figure()
+v = np.arange(10)
+
+plt.plot(v, v)
 plt.show()
