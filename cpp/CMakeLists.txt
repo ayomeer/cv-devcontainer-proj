@@ -10,10 +10,10 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON) # use pthread library if multiple thread lib
 find_package(Threads REQUIRED)
 
 add_subdirectory(pybind11)
-pybind11_add_module(cppmodule cppmodule.cpp)
+pybind11_add_module(cppmodule cppmodule.cpp) # creates library target like add_library() would
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
-# add_executable( cppmodule cppmodule.cpp )
+
 target_link_libraries(cppmodule PRIVATE ${OpenCV_LIBS})
 target_link_libraries(cppmodule PRIVATE Threads::Threads) 
