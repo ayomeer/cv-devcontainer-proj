@@ -11,16 +11,22 @@ using namespace std;
 using namespace cv;
 namespace py = pybind11;
 
+// Sample function
+void sayHello(){
+	printf("Hello from C++! \n");
+}
 
 
-
-// implement functions here
+// Implement functions here
 
 
 
 // Python bindings
 PYBIND11_MODULE(cppmodule, m){
 	m.doc() = "Cpp Module for fast algorithm implementations callable from Python";
+
+	// Sample function binding
+	m.def("sayHello", &sayHello);
 
 	// Binding for cv::Mat class so these object can be passed back as return value
 	py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
