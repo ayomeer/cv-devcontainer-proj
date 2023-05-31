@@ -59,7 +59,7 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
             xu = np.array([m, n])
             xu_hom = inhom2hom(xu)
             
-            xd_hom = H_d_u@xu_hom # hom. transform
+            xd_hom = H_d_u @ xu_hom # hom. transform
             
             xd = hom2inhom(xd_hom)
             xd = np.round(xd).astype(int) # get integer coords
@@ -87,17 +87,19 @@ def main():
     # Show reference point in original, distorted image
     plotPointsOnImage(img_d, x_d)
 
+    # Find Homography directly from 4 point correspondences 
+    # between input and output image
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
-
 
     # Undistort..
     t1 = time.perf_counter()
+    
     # ..using python function
-    img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
     
     # ..using cpp module
-    # img_u_shape = (M, N, 3)
-    # img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    img_u_shape = (M, N, 3)
+    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
     
     t2 = time.perf_counter()
     tUndistort = t2-t1

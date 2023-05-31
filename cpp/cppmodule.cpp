@@ -39,29 +39,12 @@ void undistortCore( Mat& img_u, Mat& img_d, Mat& H,
     }
 }
 
-Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
-                        py::array_t<matScalar>& pyH, 
-                        py::tuple img_u_shape ){
-
-    // -- Data type management
-    // link pyImg_d data to cv::Mat object img
-    Mat img_d(
-        pyImg_d.shape(0),               // rows
-        pyImg_d.shape(1),               // cols
-        CV_8UC3,                        // data type
-        (imgScalar*)pyImg_d.data());    // data pointer
-
-    // link H data to cv::Mat object
-    Mat H(
-        pyH.shape(0),                   // rows
-        pyH.shape(1),                   // cols
-        CV_64FC1,                       // data type
-        (matScalar*)pyH.data());        // data pointer
-
-    int M = img_u_shape[0].cast<int>();
-    int N = img_u_shape[1].cast<int>();
-
-    // -- Algorithm
+Mat pointwiseUndistort( 
+    Mat& img_d, 
+    Mat& H, 
+    int M,
+    int N
+){
     Mat img_u(M, N, CV_8UC3); // prepare return image
     
     size_t partitionSize = M/4;
@@ -80,8 +63,34 @@ Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d,
 }       
 
 PYBIND11_MODULE(cppmodule, m){
-        m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
         m.doc() = "Docstring for pointwiseUndistort function";
+        m.def("pointwiseUndistort", [](
+            py::array_t<imgScalar>& pyImg_d, 
+            py::array_t<matScalar>& pyH, 
+            py::tuple img_u_shape
+        )
+        {
+                // -- Data type management
+                // link pyImg_d data to cv::Mat object img
+                Mat img_d(
+                    pyImg_d.shape(0),               // rows
+                    pyImg_d.shape(1),               // cols
+                    CV_8UC3,                        // data type
+                    (imgScalar*)pyImg_d.data());    // data pointer
+
+                // link H data to cv::Mat object
+                Mat H(
+                    pyH.shape(0),                   // rows
+                    pyH.shape(1),                   // cols
+                    CV_64FC1,                       // data type
+                    (matScalar*)pyH.data());        // data pointer
+
+                int M = img_u_shape[0].cast<int>();
+                int N = img_u_shape[1].cast<int>();
+
+                // -- Call C++ function with C-types
+                return pointwiseUndistort(img_d, H, M, N);
+        });
 
         py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
             .def_buffer([](cv::Mat &im) -> py::buffer_info {
