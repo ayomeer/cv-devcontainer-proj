@@ -32,9 +32,6 @@ __host__ __device__ int pointInPoly(
         int y_idx = i*2+1; 
         pVect[i][0] = pt[0] - polyPts[x_idx];
         pVect[i][1] = pt[1] - polyPts[y_idx];
-
-        //printf("pVect[%d][0]: %d \n", i, pVect[i][0]);
-        //printf("pVect[%d][1]: %d \n", i, pVect[i][1]);
     }
  
     int inside = 1;
@@ -43,7 +40,6 @@ __host__ __device__ int pointInPoly(
         int x_idx = i*2; 
         int y_idx = i*2+1;
         int dotP_i = pVect[i][0] * polyNrm[x_idx] + pVect[i][1] * polyNrm[y_idx];
-        // printf("%d * %d + %d * %d = %d \n",  pVect[i][0], polyNrm[x_idx], pVect[i][1], polyNrm[y_idx], dotP_i);
         if (dotP_i < 0){inside = 0;}
     }
     return inside; 
@@ -68,12 +64,9 @@ __global__ void transformKernel
     int pt[2] = {j, i}; //coord switch: cv --> x-down
 
     int H_offset = 0;
-
-
     if (pointInPoly(pt, &polyPts[pts_A_offset], &polyNrm[nrm_A_offset])){
         H_offset = H_A_offset;
     }
-    
     else if (pointInPoly(pt, &polyPts[pts_B_offset], &polyNrm[nrm_B_offset])){
         H_offset = H_B_offset;
     }
@@ -165,7 +158,7 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 )
 {
     // --- Input data preparation ----------------------------------------------------------
-   
+    
     // Link pyH data to C-array
     double* arrH = (matScalar*)pyH.data(); // or: const double* arrH = pyH.data();
 
@@ -221,34 +214,6 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 
     return outputImage;
 }       
-
-// auto start = chrono::steady_clock::now();
-// auto end = chrono::steady_clock::now();
-// cout << "Kernel Run Time: "
-// << chrono::duration_cast<chrono::microseconds>(end - start).count()
-// << " µs" << endl;
-
-// === OTHER ====================================================================================
-
-// void renderTest(){
-
-//     Mat img(100, 100, CV_8UC1, Scalar(0));
-//     auto M = img.cols;
-//     auto N = img.rows;
-
-//     imshow("imshow", img);
-//     waitKey(1);
-
-//     for (std::size_t i = 0; i < M; ++i){
-//         for (std::size_t j = 0; j < N; ++j){
-//             img.at<char>(i,j) = 255;
-//             imshow("imshow", img);
-//             waitKey(1);
-//         }
-//     }
-//     imshow("imshow", img);
-//     waitKey(0);
-// }
 
 // === Python Interfacing =========================================================================
 PYBIND11_MODULE(cppmodule, m){

@@ -154,6 +154,7 @@ class MouseRotate:
 
         # call cpp-module to carry out homographies (arrays have to be explicitly flattened)
         ret = np.array(hr.pointwiseTransform(H, polyPts.flatten(), polyNrm.flatten()), copy=False)
+
         
         image.set_data(ret)
         plt.show(block=False)
