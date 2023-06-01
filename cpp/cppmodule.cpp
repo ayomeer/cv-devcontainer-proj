@@ -13,7 +13,7 @@ typedef double matScalar;
 using namespace std;
 using namespace cv;
  
-void undistortCore( Mat& img_u, Mat& img_d, Mat& H, 
+void undistortThread( Mat& img_u, Mat& img_d, Mat& H, 
                     size_t xPartitionStart, size_t xPartitionEnd){
 
     double N = img_u.rows;
@@ -48,13 +48,12 @@ Mat pointwiseUndistort(
     Mat img_u(M, N, CV_8UC3); // prepare return image
     
     size_t partitionSize = M/4;
-
-    std::thread th1(undistortCore, ref(img_u), ref(img_d), ref(H), 0*partitionSize, 1*partitionSize);
-    std::thread th2(undistortCore, ref(img_u), ref(img_d), ref(H), 1*partitionSize, 2*partitionSize);
-    std::thread th3(undistortCore, ref(img_u), ref(img_d), ref(H), 2*partitionSize, 3*partitionSize);
-    std::thread th4(undistortCore, ref(img_u), ref(img_d), ref(H), 3*partitionSize, M);
+    thread th1(undistortThread, ref(img_u), ref(img_d), ref(H), 0*partitionSize, 1*partitionSize);
+    thread th2(undistortThread, ref(img_u), ref(img_d), ref(H), 1*partitionSize, 2*partitionSize);
+    thread th3(undistortThread, ref(img_u), ref(img_d), ref(H), 2*partitionSize, 3*partitionSize);
+    thread th4(undistortThread, ref(img_u), ref(img_d), ref(H), 3*partitionSize, M);
     
-    th1.join();
+    th1.join(); 
     th2.join();
     th3.join();
     th4.join();
