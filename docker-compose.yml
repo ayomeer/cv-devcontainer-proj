@@ -1,7 +1,7 @@
 services:
   app: 
     image: ayomeer/cv-devcontainer-image:cvcuda
-    container_name: cv-devcontainer
+    container_name: cvcuda-devcontainer
     command: sh
     network_mode: host  # works despite documentation saying it only works for linux host
                         # --> needed, so host.docker.internal points to actual host IP
