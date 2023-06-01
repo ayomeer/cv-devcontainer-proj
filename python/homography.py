@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
 import cv2
 import time
+from memory_profiler import profile
 
 # --- Constants ----------------------------------------------------------- #
 FIGURE_SIZE = (12, 9)
@@ -15,9 +16,7 @@ def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
     plt.imshow(img)
     for point in points:
         plt.plot(point[1], point[0], 'o')
-    plt.title("image with points at specified coordinates")
-    plt.xlabel("coordinate 1")
-    plt.ylabel("coordinate 0")
+    plt.title("Image with manually selected Points")
     plt.show(block=False)
 
 # solve system of equations to find H_d_u
@@ -68,6 +67,26 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
             img_u[m][n] = img_d[xd[0], xd[1], :] # last dimensions: rgb channels  
     return img_u
 
+@profile
+def memTest(img_d, H_d_u, img_u_shape):
+    
+    # test if calling cpp function multiple times and writing to 
+    # same variable increases memory usage
+
+    retObj = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    retObj_2 = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    
+    retObj = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    retObj_2 = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+
+    retObj = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    retObj_2 = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    
+    retObj = None
+    retObj_2 = None
+
+    return
+
 def main():
     # Reading image
     imgName = '/app/_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
@@ -99,8 +118,9 @@ def main():
     
     # ..using cpp module
     img_u_shape = (M, N, 3)
-    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
-    
+    # img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
+    img_u = cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape)
+
     t2 = time.perf_counter()
     tUndistort = t2-t1
     print("tUndistort ", tUndistort)

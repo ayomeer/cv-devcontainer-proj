@@ -68,8 +68,8 @@ PYBIND11_MODULE(cppmodule, m){
             py::array_t<imgScalar>& pyImg_d, 
             py::array_t<matScalar>& pyH, 
             py::tuple img_u_shape
-        )
-        {
+            )
+            {
                 // -- Data type management
                 // link pyImg_d data to cv::Mat object img
                 Mat img_d(
@@ -90,8 +90,10 @@ PYBIND11_MODULE(cppmodule, m){
 
                 // -- Call C++ function with C-types
                 return pointwiseUndistort(img_d, H, M, N);
-        });
+            }
+        );
 
+        // Binding cv::Mat class and defining a type conversion to buffer object for returning images to python
         py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
             .def_buffer([](cv::Mat &im) -> py::buffer_info {
                     return py::buffer_info(
@@ -105,7 +107,7 @@ PYBIND11_MODULE(cppmodule, m){
                             im.channels()
                         },          
                         {                                                    // strides in bytes
-                            sizeof(unsigned char) * im.channels() * im.cols, // (issue with padding)
+                            sizeof(unsigned char) * im.channels() * im.cols, 
                             sizeof(unsigned char) * im.channels(),
                             sizeof(unsigned char)
                         }
