@@ -39,7 +39,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Unit Test
-        run: docker-compose -f docker-compose.ci.yml run app python3 ./python/unitTests.py
+        run: docker-compose -f .github/docker-compose.ci.yml run app python3 ./python/unitTests.py
         # failed test return will propagate through docker run command and fail CI
         
       - name: Build (again) and Push Docker Image
