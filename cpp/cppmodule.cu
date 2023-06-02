@@ -142,15 +142,7 @@ HomographyReconstruction::~HomographyReconstruction(){
     cudaFree(d_ptr_polyNrm);
 }
 
-cv::Mat HomographyReconstruction::getQueryImage(){
-    return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
-}
 
-void HomographyReconstruction::showQueryImage(){
-    cv::imshow("queryImage", queryImage);
-    cv::waitKey(1);
-    return;
-}
 cv::Mat HomographyReconstruction::pointwiseTransform(
     py::array_t<matScalar>& pyH,
     const py::array_t<int>& py_polyPts,
@@ -187,17 +179,12 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     
     // Prep kernel launch
     d_queryImage.upload(queryImage);
-    
+       
     const dim3 blockSize(16,16);
     const dim3 gridSize(cv::cudev::divUp(d_outputImage.cols, blockSize.x), 
                         cv::cudev::divUp(d_outputImage.rows, blockSize.y)); 
 
-    
-
-    
-    // Kernel Launch 2
-    d_queryImage.upload(queryImage);
-    
+    // Kernel Launch 
     transformKernel<<<gridSize, blockSize>>>(d_queryImage, 
                                              d_outputImage, 
                                              d_ptr_H, 
@@ -206,7 +193,6 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
     cudaDeviceSynchronize();
     
     d_outputImage.download(outputImage);
-    // -------------------------------------------------------------------------------------
 
     // show results
     // imshow("Image", outputImage);
@@ -214,6 +200,16 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 
     return outputImage;
 }       
+
+cv::Mat HomographyReconstruction::getQueryImage(){
+    return queryImage; // for conversion code, see end of file (PYBIND11_MODULE)
+}
+
+void HomographyReconstruction::showQueryImage(){
+    cv::imshow("queryImage", queryImage);
+    cv::waitKey(1);
+    return;
+}
 
 // === Python Interfacing =========================================================================
 PYBIND11_MODULE(cppmodule, m){
