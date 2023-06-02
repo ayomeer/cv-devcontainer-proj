@@ -9,8 +9,7 @@ on:
     # manual dispatch from github actions tab
 
 env:
-  TEST_TAG: ayomeer/cv-devcontainer-image:ci_build_main
-  LATEST_TAG: ayomeer/cv-devcontainer-image:latest
+  TAG: ayomeer/cv-devcontainer-image:main
 
 jobs:
   build-and-test:
@@ -42,11 +41,11 @@ jobs:
         run: docker-compose -f docker-compose.ci.yml run app python3 ./python/unitTests.py
         # failed test return will propagate through docker run command and fail CI
         
-      - name: Build (again) and Push Docker Image
+      - name: Build Push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: true
-          tags: ${{ env.TEST_TAG }}
+          push:  ${{ github.event_name != 'pull_request' }} # don't push to Docker Hub if triggered by
+          tags: ${{ env.TEST_TAG }}                         # pull request activity
           cache-from: type=gha
           cache-to: type=gha,mode=max
