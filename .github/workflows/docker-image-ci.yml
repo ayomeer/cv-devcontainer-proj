@@ -6,8 +6,8 @@ on:
   pull_request:
     # all branches
   workflow_dispatch:
-    # manual dispatch from github actions tab
-
+    # manual dispatch from github actions tab 
+    # (will push image to Docker Hub if tests passed)
 env:
   TAG: ayomeer/cv-devcontainer-image:main
 
@@ -33,7 +33,7 @@ jobs:
           context: .
           push: false # don't push to repo until unit tests passed
           load: true  # make available locally for testing
-          tags: test_build  # give run_id as temporary tag
+          tags: ${{ env.TAG }}  
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -46,6 +46,6 @@ jobs:
         with:
           context: .
           push:  ${{ github.event_name != 'pull_request' }} # don't push to Docker Hub if triggered by
-          tags: ${{ env.TEST_TAG }}                         # pull request activity
+          tags: ${{ env.TAG }}                              # pull request activity
           cache-from: type=gha
           cache-to: type=gha,mode=max
