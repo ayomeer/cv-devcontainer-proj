@@ -34,7 +34,7 @@ jobs:
           context: .
           push: false # don't push to repo until unit tests passed
           load: true  # make available locally for testing
-          tags: ${{ github.run_id }}  # give run_id as temporary tag
+          tags: test_build  # give run_id as temporary tag
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
