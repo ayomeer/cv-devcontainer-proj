@@ -33,7 +33,7 @@ jobs:
           context: .
           push: false # don't push to repo until unit tests passed
           load: true  # make available locally for testing
-          tags: build_test # tag given in .github/docker-compose.ci  
+          tags: test_build # tag given in .github/docker-compose.ci  
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
