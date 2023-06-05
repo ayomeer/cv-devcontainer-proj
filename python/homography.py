@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib
 matplotlib.use('GTK4Agg') 
-matplotlib.rcParams['image.interpolation'] = "none"
+# matplotlib.rcParams['image.interpolation'] = "none"
 import matplotlib.pyplot as plt
 from lib.cppmodule import HomographyReconstruction as HomRec # path from vs code root --> cd to /app/python
 import cv2 as cv
@@ -11,7 +11,7 @@ import time
 # plt.ion() # interactive plot mode: automatic redraw on data changes
 
 # --- CONSTANTS ------------------------------------------------------------------------ #
-FIGURE_SIZE = (12, 9)
+DPI = 150
 
 # AR Wireframe
 points_b = np.array(
@@ -81,6 +81,8 @@ class MouseRotate:
         self.R_z = None
         self.x = None
 
+        self.draw_wireframe = 1
+
         # self.bm = BlitManager(self.fig.canvas, self.lines)
 
     def on_click(self, event):
@@ -119,8 +121,16 @@ class MouseRotate:
         x_hom = (K_c @ points_c)
         self.x = x_hom[:2, :] / x_hom[2, :]   
         
+        
+        # update line objects
         for i, l in enumerate(self.lines):
-            l.set_data(get_edge_lineData(edges[i], self.x))
+            if self.draw_wireframe is 1:
+                l.set_data(get_edge_lineData(edges[i], self.x))
+            
+            else:
+                l.set_data([],[])
+
+
         
         # self.bm.update() # update plot using blitting manager class
         
@@ -155,7 +165,6 @@ class MouseRotate:
         # call cpp-module to carry out homographies (arrays have to be explicitly flattened)
         ret = np.array(hr.pointwiseTransform(H, polyPts.flatten(), polyNrm.flatten()), copy=False)
 
-        
         image.set_data(ret)
         plt.show(block=False)
         
@@ -444,8 +453,10 @@ if __name__ == "__main__":
 
     ## -- Fit homography using top face reference and RANSAC ---------------------------
     H_c_b, mask = cv.findHomography(xu, xd, method=cv.RANSAC, ransacReprojThreshold=4.0)
-
-    # plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches) 
+    
+    """ Show refined matches
+    plotMatches(trainImage, trainPoints, queryImage, queryPoints, mask, matches) 
+    """
 
     ## -- Estimate Pose from homography ------------------------------------------------
     # Homography found using RANSAC is not guaranteed to be valid for pose estimation.
@@ -501,28 +512,29 @@ if __name__ == "__main__":
     x_query = x_query_hom[:2, :] / x_query_hom[2, :]
 
     """ View the image and the wireframe overlay
-    plt.imshow(queryImage)
+    im = cv.cvtColor(queryImage, cv.COLOR_BGR2RGB)
+    plt.imshow(im)
     ax = plt.gca()
     plot_edges(ax, x_query, edges, anim=False)
-    plt.show(block=False)
+    plt.show(block=True)
     """
     
     ## -- Re-Rendering Faces ------------------------------------------------------
     # Set up figure
     outputImage = np.zeros((queryImage.shape)) 
     
-    dpi = 100
-    fig = plt.figure(figsize=(outputImage.shape[1]/dpi, outputImage.shape[0]/dpi))
+    fig = plt.figure(figsize=(outputImage.shape[1]/DPI, outputImage.shape[0]/DPI))
     ax = fig.add_subplot(111)
     image = ax.imshow(outputImage)
     plt.show(block=False)
 
     # Set up interactive rendering
     hr = HomRec(queryImage) # instantiate cpp-class object for re-rendering on GPU
-    
+
     lines = plot_edges(ax, x_query, edges, anim=False) # plot wireframe to interact with
     mouseInput = MouseRotate(fig, ax, lines, image, R_c_b) # instantiate py-class object for interactive re-rendering
-    
+    mouseInput.draw_wireframe = 0
+
     # plt.show(block=False)
     # plt.pause(0.1)
 

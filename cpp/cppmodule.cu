@@ -116,7 +116,7 @@ private:
     int* d_ptr_polyNrm;
 };
 
-// --- Method Definitions --------------------------------------------------------------------
+
 HomographyReconstruction::HomographyReconstruction(py::array_t<imgScalar>& py_queryImage)
     : d_ptr_H(NULL), d_ptr_polyPts(NULL), d_ptr_polyNrm(NULL)
 {
@@ -170,7 +170,6 @@ cv::Mat HomographyReconstruction::pointwiseTransform(
 
     cv::cuda::GpuMat d_outputImage(M, N, CV_8UC3, cv::Scalar(0,0,0)); // allocate space for d_outputImage image
 
-    
     // --- Start of repeated code ---------------------------------------------------------
     // Copy H-matrices onto device (the same for each kernel)
     cudaMemcpy(d_ptr_H, arrH, pyH.shape(0)*pyH.shape(1)*sizeof(double), cudaMemcpyHostToDevice);
@@ -232,9 +231,6 @@ PYBIND11_MODULE(cppmodule, m){
         .def("pointwiseTransform", &HomographyReconstruction::pointwiseTransform)
         .def("getQueryImage", &HomographyReconstruction::getQueryImage)
         .def("showQueryImage", &HomographyReconstruction::showQueryImage)
-        
-        // examples for other class element types
-        // .def_readwrite("publicVar", &HomographyReconstruction::publicVar)
         ;
     // Returning Mat to Python as Numpy array
     py::class_<cv::Mat>(m, "Mat", py::buffer_protocol()) 
