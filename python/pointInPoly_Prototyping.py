@@ -35,12 +35,21 @@ def _pointInPoly(p, polyPts, polyNrm):
 if __name__ == '__main__':
 
     # Create example image w/ poly
-    img = np.zeros((1960,4032,3))
 
-    polyPts = np.array([[ 755,  972],
-                        [1637,  981],
-                        [1273, 2958],
-                        [ 542, 2506]])
+    # xonar box example
+    # img = np.zeros((1960,4032,3))
+    # polyPts = np.array([[ 755,  972],
+    #                     [1637,  981],
+    #                     [1273, 2958],
+    #                     [ 542, 2506]])
+    # polyPts_cv = switchCoords(polyPts)
+
+    # small example
+    img = np.zeros((50,50,3))
+    polyPts = np.array([[10, 10],
+                        [30, 15],
+                        [25, 40],
+                        [5, 35]])
     polyPts_cv = switchCoords(polyPts)
     cv.polylines(img, [polyPts_cv.reshape(-1,1,2)], True, (1,0,0))
     
@@ -56,8 +65,8 @@ if __name__ == '__main__':
     # print(pointInPoly(pt, polyPts))
     
     polyNrm = getNorms(polyPts).astype(np.int64)
-    print(cpp.pointInPoly(pt, polyPts.flatten(), polyNrm.flatten()))
-    # print(_pointInPoly(pt, polyPts, polyNrm))
+    # print(cpp.pointInPoly(pt, polyPts.flatten(), polyNrm.flatten()))
+    print(_pointInPoly(pt, polyPts, polyNrm))
     
     # show poly with chosen point
     plt.imshow(img)
