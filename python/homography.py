@@ -92,11 +92,14 @@ def main():
     # Show reference point in original, distorted image
     plotPointsOnImage(img_d, x_d)
 
+    # Find 4-point correspondence transform matrix
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
 
+    # python-undistort
     # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    
+    # cpp-undistort
     img_u_shape = (M, N, 3)
-
     t1 = time.perf_counter()
     img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape))
     t2 = time.perf_counter()
