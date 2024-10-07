@@ -1,6 +1,6 @@
 {
     "name": "cv-devcontainer",
-    "dockerComposeFile": "docker-compose-linux.yml",
+    "dockerComposeFile": "docker-compose.yml",
     "service": "app",
     "workspaceFolder": "/app",
     "customizations": {
