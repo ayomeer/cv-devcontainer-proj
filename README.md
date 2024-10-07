@@ -1,7 +1,3 @@
-# cv-devcontainer-proj
-Computer Vision project including the docker container files used to build the dev environment.
+# cv-devcontainer-proj: homography
 
-Building the DevContainer image takes a considerable amount of time, due to OpenCV being built from source during image building. Find the built Docker image on https://hub.docker.com/repository/docker/ayomeer/cv-devcontainer-image/general.
-
-
-test
+This branch showcases the homography chessboard undistortion demo. The undistortion algorithm is implemented in python as well as cpp to compare execution times. No multithreading or cuda acceleration.
