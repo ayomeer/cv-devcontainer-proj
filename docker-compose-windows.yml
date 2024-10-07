@@ -3,9 +3,8 @@ services:
     image: ayomeer/cv-devcontainer-image:latest
     container_name: devcontainer
     command: sh
-    network_mode: host  # works despite documentation saying it only works for linux host
-                        # --> needed, so host.docker.internal points to actual host IP
-                        #     and not Docker subnet
+    network_mode: host  
+                       
     volumes:
       - .:/app
       
