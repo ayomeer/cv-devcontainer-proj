@@ -1,0 +1,24 @@
+services:
+  app: 
+    image: ayomeer/cv-devcontainer-image:cvcuda
+    container_name: cv-devcontainer
+    command: sh
+    network_mode: host  
+
+    volumes:
+      - .:/app
+          
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu] # equivalent of '--gpus=all' in docker run command
+
+    environment:
+      - DISPLAY=$DISPLAY
+      - MPLBACKEND=TkAgg
+
+    stdin_open: true
+    tty: true
