@@ -8,6 +8,8 @@ import time
 # --- Constants ----------------------------------------------------------- #
 FIGURE_SIZE = (12, 9)
 
+UNDISTORT_METHOD = "python"
+
 # --- Functions ----------------------------------------------------------- #
 
 def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
@@ -73,14 +75,11 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
     return img_u
 
 
+# --- Main --------------------------------------------------------------- #
 def main():
     # Reading image
     imgName = '/app/_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
     img_d = plt.imread(imgName)
-
-    plt.figure(figsize=FIGURE_SIZE)
-    plt.imshow(img_d)
-    plt.show(block=False)
 
     # Define shape undistorted image
     M = N = 800
@@ -95,24 +94,26 @@ def main():
     # Find 4-point correspondence transform matrix
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
 
-    # python-undistort
-    # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
-    
-    # cpp-undistort
-    img_u_shape = (M, N, 3)
+    # Undistort with either python function or cpp module
     t1 = time.perf_counter()
-    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape))
+    match UNDISTORT_METHOD:
+        case "python": 
+            img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+        
+        case "cpp":
+            img_u_shape = (M, N, 3)
+            img_u = cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape)
+    
     t2 = time.perf_counter()
     tUndistort = t2-t1
-    print("tUndistort ", tUndistort)
-    
+    print("Undistort algorithm runtime: {:.6f} seconds".format(tUndistort))
+
     # Show result
     plt.figure(figsize=FIGURE_SIZE)
     plt.imshow(img_u)
     plt.title("Undistorted Image")
     plt.show()
 
-    dummy = 1
 
 if __name__ == "__main__":
     main()
