@@ -1,5 +1,5 @@
 {
-    "name": "cv-devcontainer",
+    "name": "ipcv",
     "dockerComposeFile": "docker-compose-linux.yml",
     "service": "app",
     "workspaceFolder": "/app",

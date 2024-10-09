@@ -7,10 +7,13 @@ services:
 
     volumes:
       - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix       # mount GUI server
+      - $XAUTHORITY:/developer/.Xauthority  # mount Xauthority to grant X11 access
 
     environment:
-      - DISPLAY=$DISPLAY # set display environment to host display
-      - MPLBACKEND=TkAgg # set matplotlib backend 
+      - DISPLAY=$DISPLAY                    # set display environment to host display
+      - XAUTHORITY=/developer/.Xauthority   # set Xauthority environment variable
+      - MPLBACKEND=TkAgg                    # set matplotlib backend 
       
     stdin_open: true
     tty: true
