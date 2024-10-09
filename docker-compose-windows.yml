@@ -1,24 +1,16 @@
 services:
   app: 
-    image: ayomeer/cv-devcontainer-image:cvcuda
-    container_name: cv-devcontainer
+    image: ayomeer/cv-devcontainer-image:latest
+    container_name: devcontainer
     command: sh
     network_mode: host  
                        
     volumes:
       - .:/app
-          
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu] # equivalent of '--gpus=all' in docker run command
-
+      
     environment:
-      - DISPLAY=host.docker.internal:0.0 # [WIN] set display environment to host IP
-      - MPLBACKEND=TkAgg                 # [WIN] set matplotlib backend to X11 compatible one
+      - DISPLAY=host.docker.internal:0.0 # set display environment to host IP
+      - MPLBACKEND=TkAgg                 # set matplotlib backend to X11 compatible one
 
     stdin_open: true
-    tty: true
+    tty: true 

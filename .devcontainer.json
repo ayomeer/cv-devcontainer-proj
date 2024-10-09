@@ -1,21 +1,20 @@
 {
-    "name": "cv-devcontainer",
+    "name": "ipcv",
     "dockerComposeFile": "docker-compose-linux.yml",
     "service": "app",
     "workspaceFolder": "/app",
     "customizations": {
         "vscode": {
             "settings": {
-
+                "jupyter.sendSelectionToInteractiveWindow": true
             },
             "extensions": [
-				"ms-python.python",
-				"076923.python-image-preview",
-				"ms-vscode.cpptools",
-				"ms-vscode.cmake-tools",
-				"NVIDIA.nsight-vscode-edition",
-				"twxs.cmake"
-			]
+                "ms-python.python",
+                "ms-vscode.cpptools",
+                "076923.python-image-preview",
+                "twxs.cmake",
+                "ms-vscode.cmake-tools"
+            ]
         }
     },
     "shutdownAction": "stopCompose"

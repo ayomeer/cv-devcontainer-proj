@@ -67,12 +67,9 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
+        "bitset": "cpp",
         "numbers": "cpp",
-        "__locale": "cpp",
-        "__string": "cpp",
-        "semaphore": "cpp"
-    },
-    "cmake.sourceDirectory": "${workspaceFolder}/cpp",
-    "cmake.configureOnOpen": false,
-    "C_Cpp.errorSquiggles": "disabled"
+        "semaphore": "cpp",
+        "__nullptr": "cpp"
+    }
 }

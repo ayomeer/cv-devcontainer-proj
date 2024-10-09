@@ -2,10 +2,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import lib.cppmodule as cpp # path from vs code root --> cd to /app/python
+import cv2
 import time
 
 # --- Constants ----------------------------------------------------------- #
 FIGURE_SIZE = (12, 9)
+
+UNDISTORT_METHOD = "cpp" # valid values: "python", "cpp"
 
 # --- Functions ----------------------------------------------------------- #
 
@@ -18,6 +21,7 @@ def plotPointsOnImage(img: np.ndarray, points: np.ndarray):
     plt.xlabel("coordinate 1")
     plt.ylabel("coordinate 0")
     plt.show(block=False)
+
 
 # solve system of equations to find H_d_u
 def homographyFrom4PointCorrespondences(x_d: np.ndarray, x_u: np.ndarray) -> np.ndarray:
@@ -42,13 +46,16 @@ def homographyFrom4PointCorrespondences(x_d: np.ndarray, x_u: np.ndarray) -> np.
     H_d_u = np.append(h_coefs, [1]).reshape((3,3))
     return H_d_u
 
+
 def hom2inhom(xhom):
     return xhom[0:2]/xhom[2]
+
 
 def inhom2hom(x):
     xhom = np.ones(3)
     xhom[0:2] = x
     return xhom
+
 
 def pointwiseUndistort(H_d_u, img_d, M, N):
     img_u = np.empty((M,N,3), np.uint8)
@@ -67,14 +74,12 @@ def pointwiseUndistort(H_d_u, img_d, M, N):
             img_u[m][n] = img_d[xd[0], xd[1], :] # last dimensions: rgb channels  
     return img_u
 
+
+# --- Main --------------------------------------------------------------- #
 def main():
     # Reading image
     imgName = '/app/_img/chessboard_perspective.jpg' # set wdir in ipython terminal (cd)! 
     img_d = plt.imread(imgName)
-
-    plt.figure(figsize=FIGURE_SIZE)
-    plt.imshow(img_d)
-    plt.show(block=False)
 
     # Define shape undistorted image
     M = N = 800
@@ -86,24 +91,22 @@ def main():
     # Show reference point in original, distorted image
     plotPointsOnImage(img_d, x_d)
 
+    # Find 4-point correspondence transform matrix
     H_d_u = homographyFrom4PointCorrespondences(x_d, x_u)
 
-    # img_u = pointwiseUndistort(H_d_u, img_d, M, N)
+    # Undistort with either python function or cpp module
+    # Note: runtime measurement done in cpp module
     img_u_shape = (M, N, 3)
+    img_u = cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape)
 
-    t1 = time.perf_counter()
-    img_u = np.array(cpp.pointwiseUndistort(img_d, H_d_u, img_u_shape), copy=False)
-    t2 = time.perf_counter()
-    tUndistort = t2-t1
-    print("tUndistort ", tUndistort)
-    
+
+
     # Show result
     plt.figure(figsize=FIGURE_SIZE)
     plt.imshow(img_u)
     plt.title("Undistorted Image")
     plt.show()
 
-    dummy = 1
 
 if __name__ == "__main__":
     main()

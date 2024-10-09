@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/app/cpp/build",
+  "command": "/usr/local/cuda/bin/nvcc -forward-unknown-to-host-compiler -Dcppmodule_EXPORTS -isystem=/app/cpp/pybind11/include -isystem=/usr/include/python3.10 -isystem=/usr/local/include/opencv4  --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -Xcompiler=-fvisibility=hidden -std=c++11 -x cu -c /app/cpp/cppmodule.cu -o CMakeFiles/cppmodule.dir/cppmodule.cu.o",
+  "file": "/app/cpp/cppmodule.cu"
+}
+]

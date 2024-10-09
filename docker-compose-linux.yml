@@ -1,24 +1,27 @@
 services:
   app: 
     image: ayomeer/cv-devcontainer-image:cvcuda
-    container_name: cv-devcontainer
+    container_name: devcontainer-cvcuda
     command: sh
-    network_mode: host  
+    network_mode: host 
 
     volumes:
       - .:/app
-          
+      - /tmp/.X11-unix:/tmp/.X11-unix       # mount GUI server
+      - $XAUTHORITY:/developer/.Xauthority  # mount Xauthority to grant X11 access
+
+    environment:
+      - DISPLAY=$DISPLAY                    # set display environment to host display
+      - XAUTHORITY=/developer/.Xauthority   # set Xauthority environment variable
+      - MPLBACKEND=TkAgg                    # set matplotlib backend 
+
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu] # equivalent of '--gpus=all' in docker run command
-
-    environment:
-      - DISPLAY=$DISPLAY
-      - MPLBACKEND=TkAgg
-
+              capabilities: [gpu] # equivalent of '--gpus=all' in docker run command  
+              
     stdin_open: true
     tty: true

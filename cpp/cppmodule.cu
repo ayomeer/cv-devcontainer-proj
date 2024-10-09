@@ -1,26 +1,24 @@
 #include <stdio.h>
-#include <cmath>
-#include <opencv2/core/cuda/common.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/cuda/common.hpp>
 #include <opencv2/cudev.hpp>
-//#include <pybind11/pybind11.h>
-//#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <chrono>
 
-// namespace py = pybind11;
+
+namespace py = pybind11;
 
 typedef std::uint8_t imgScalar;
 typedef double matScalar;
 
-using namespace std;
-using namespace cv;
 
 // Cuda Kernel
-__global__ void undistortKernel
+__global__ void transformKernel
 (
     const cv::cuda::PtrStepSz<uchar3> src,
     cv::cuda::PtrStepSz<uchar3> dst,
-    float* H
+    double* H
 )
 {
     // Get dst pixel indexes for this thread from CUDA framework
@@ -40,98 +38,88 @@ __global__ void undistortKernel
     dst.ptr(i)[j] = src.ptr(xd_0)[xd_1];
 }
 
-/*
-Mat pointwiseUndistort( py::array_t<imgScalar>& pyImg_d, 
-                        py::array_t<matScalar>& pyH, 
-                        py::tuple img_u_shape ){
 
-    // --- Input data preparation --------------------------------------
-     
-    // link pyImg_d data to cv::Mat object img
-    Mat img_d(
-        pyImg_d.shape(0),               // rows
-        pyImg_d.shape(1),               // cols
-        CV_8UC3,                        // data type
-        (imgScalar*)pyImg_d.data());    // data pointer
+cv::Mat pointwiseUndistort( 
+    py::array_t<imgScalar>& py_queryImage, 
+    py::array_t<matScalar>& py_H, 
+    py::tuple py_retImage_shape 
+)
+{
+    // --- Input data preparation ----------------------------------------------------------
+    cv::Mat queryImage(
+        py_queryImage.shape(0),               // rows
+        py_queryImage.shape(1),               // cols
+        CV_8UC3,                              // data type
+        (imgScalar*)py_queryImage.data());    // data pointer
+
     
-    cuda::GpuMat img_d_gpu(img_d); // create GpuMat from regular Mat
-
-    // link H data to cv::Mat object
-    Mat H(
-        pyH.shape(0),                   // rows
-        pyH.shape(1),                   // cols
-        CV_64FC1,                       // data type
-        (matScalar*)pyH.data());        // data pointer
-
-    int M = img_u_shape[0].cast<int>();
-    int N = img_u_shape[1].cast<int>();
-
-    Mat img_u(M, N, CV_8UC3); // prepare return image
-    cuda::GpuMat img_u_gpu(img_u); // create GpuMat from regular Mat
-
-    // ---  Algorithm --------------------------------------------------
-*/
-
-int main(){
-
-   // Loading H-coefs into array for passing to CUDA Kernel
-    float H[] = {3.55082e-1, 1.51274e-1, 4.8e+1, 
-                -4.27999e-1, 5.60277e-1, 3.85e+2,
-                -2.72420e-4, -1.27368e-4, 1e+0};
+    // Link py_H data to C-array
+    double* arrH = (matScalar*)py_H.data(); // or: const double* arrH = py_H.data();
+    double* d_ptr_H;                       // Device pointer for H-array on device                                        
     
-    float* dPtr_H = 0;
-    cudaMalloc(&dPtr_H, sizeof(H));
-    cudaMemcpy(dPtr_H, H, sizeof(H), cudaMemcpyHostToDevice);
+    // Allocate space on device and copy H-array there
+    cudaMalloc(&d_ptr_H, (3*3*3)*sizeof(double));           // allocate space on device
+    cudaMemcpy( d_ptr_H, arrH,                              // destination, source
+                py_H.shape(0)*py_H.shape(1)*sizeof(double),   // size
+                cudaMemcpyHostToDevice);                    // direction
 
+    // Unpack python tuple into integers
+    auto M = py_retImage_shape[0].cast<uint32_t>();
+    auto N = py_retImage_shape[1].cast<uint32_t>();
 
-    // prep input image and return image  
-    Mat img = imread("/app/_img/chessboard_perspective.jpg", IMREAD_COLOR );
-    cv::cuda::GpuMat src;
+    // --- CUDA Host Code ------------------------------------------------------------------
+   
+    // Query (input) image
+    cv::cuda::GpuMat d_queryImage; 
     
-    Mat ret;
-    cv::cuda::GpuMat dst(800, 800, CV_8UC3); // allocate space 
-    
-    // Prep Kernel Launch
-    src.upload(img);
-    
+    // Output image
+    cv::cuda::GpuMat d_outputImage(M, N, CV_8UC3, cv::Scalar(0,0,0)); // device memory
+    cv::Mat outputImage;                                              // host memory
+
+    // Kernel launch params
     const dim3 blockSize(16,16);
-    const dim3 gridSize(cv::cudev::divUp(dst.cols, blockSize.x), 
-                        cv::cudev::divUp(dst.rows, blockSize.y)); 
+    const dim3 gridSize(cv::cudev::divUp(d_outputImage.cols, blockSize.x), 
+                        cv::cudev::divUp(d_outputImage.rows, blockSize.y)); 
 
-
-    // -- Kernel Launch 1 (slow) ------------------------------------------------------- 
-
-    src.upload(img);
     
-    undistortKernel<<<gridSize, blockSize>>>(src, dst, dPtr_H);
-    cudaDeviceSynchronize();
+    // -- Kernel launch 1 (initializer run) --
+    auto start_1 = std::chrono::steady_clock::now();
+    d_queryImage.upload(queryImage);
+    transformKernel<<<gridSize, blockSize>>>(d_queryImage, 
+                                             d_outputImage, 
+                                             d_ptr_H);
     
-    dst.download(ret);
+    cudaDeviceSynchronize(); // Wait for all kernels to finsh
+    d_outputImage.download(outputImage); // download download output back to host
+    auto end_1 = std::chrono::steady_clock::now();
 
-    // -- Kernel Launch 2 (fast) ------------------------------------------------------- 
-    auto start = chrono::steady_clock::now();
-    src.upload(img);
+    // -- Kernel launch 2 --
+    auto start_2 = std::chrono::steady_clock::now();
+    d_queryImage.upload(queryImage);
+    transformKernel<<<gridSize, blockSize>>>(d_queryImage, 
+                                             d_outputImage, 
+                                             d_ptr_H);
     
-    undistortKernel<<<gridSize, blockSize>>>(src, dst, dPtr_H);
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize(); // Wait for all kernels to finsh
+    d_outputImage.download(outputImage); // download download output back to host
+    auto end_2 = std::chrono::steady_clock::now();
+
+    // Free up device resources allocated using malloc (others handled automatically)
+    cudaFree(d_ptr_H);
     
-    dst.download(ret);
-    auto end = chrono::steady_clock::now();
 
-    // --------------------------------------------------------------------------
+    // Print runtime results
+    std::cout << "Runtime 1st kernel launch in microseconds: "
+    << std::chrono::duration_cast<std::chrono::microseconds>(end_1 - start_1).count()
+    << " µs" << std::endl;
 
-    // show results
-    cout << "Elapsed time in microseconds: "
-        << chrono::duration_cast<chrono::microseconds>(end - start).count()
-        << " µs" << endl;
-
-    imshow("gpu image", ret);
-    waitKey(0);
-
-
-    return 0;
+    std::cout << "Runtime 2nd kernel launch in microseconds: "
+    << std::chrono::duration_cast<std::chrono::microseconds>(end_2 - start_2).count()
+    << " µs" << std::endl;
+    
+    return outputImage;
 }       
-/*
+
 PYBIND11_MODULE(cppmodule, m){
     m.def("pointwiseUndistort", &pointwiseUndistort, py::return_value_policy::automatic);
     m.doc() = "Docstring for pointwiseUndistort function";
@@ -156,5 +144,4 @@ PYBIND11_MODULE(cppmodule, m){
                 );
             })
         ;
-    }
-*/
+}
