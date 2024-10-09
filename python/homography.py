@@ -8,7 +8,7 @@ import time
 # --- Constants ----------------------------------------------------------- #
 FIGURE_SIZE = (12, 9)
 
-UNDISTORT_METHOD = "python"
+UNDISTORT_METHOD = "cpp"
 
 # --- Functions ----------------------------------------------------------- #
 
